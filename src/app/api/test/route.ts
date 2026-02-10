@@ -89,12 +89,13 @@ After your response, on a new line, add a JSON metadata block wrapped in <metada
 
     // Build message history (cap to prevent unbounded growth)
     const rawHistory = Array.isArray(conversationHistory) ? conversationHistory : [];
-    const history = rawHistory.slice(-40).map(
-      (m: { role: string; content: string }) => ({
+    const history = rawHistory
+      .slice(-40)
+      .filter((m: unknown) => m && typeof m === "object" && "role" in m && "content" in m)
+      .map((m: { role: string; content: string }) => ({
         role: m.role === "agent" ? ("assistant" as const) : ("user" as const),
-        content: m.content,
-      })
-    );
+        content: String(m.content),
+      }));
 
     const messages = [...history, { role: "user" as const, content: message }];
 

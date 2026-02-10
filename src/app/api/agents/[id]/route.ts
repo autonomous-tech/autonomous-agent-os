@@ -75,7 +75,7 @@ export async function PATCH(
       updateData.status = body.status;
     }
     if (body.config !== undefined) {
-      if (typeof body.config !== "object" || body.config === null) {
+      if (typeof body.config !== "object" || body.config === null || Array.isArray(body.config)) {
         return NextResponse.json({ error: "Invalid config" }, { status: 400 });
       }
       // Merge with existing config
@@ -84,13 +84,13 @@ export async function PATCH(
       updateData.config = JSON.stringify(mergedConfig);
     }
     if (body.stages !== undefined) {
-      if (typeof body.stages !== "object" || body.stages === null) {
+      if (typeof body.stages !== "object" || body.stages === null || Array.isArray(body.stages)) {
         return NextResponse.json({ error: "Invalid stages" }, { status: 400 });
       }
       updateData.stages = JSON.stringify(body.stages);
     }
     if (body.conversations !== undefined) {
-      if (typeof body.conversations !== "object" || body.conversations === null) {
+      if (typeof body.conversations !== "object" || body.conversations === null || Array.isArray(body.conversations)) {
         return NextResponse.json({ error: "Invalid conversations" }, { status: 400 });
       }
       updateData.conversations = JSON.stringify(body.conversations);

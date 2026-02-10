@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       status: 200,
       headers: {
         "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename="${agent.slug.replace(/[^a-z0-9_-]/gi, "")}.zip"`,
+        "Content-Disposition": `attachment; filename="${agent.slug.replace(/[^a-z0-9_-]/gi, "") || "agent"}.zip"`,
         "Content-Length": zipBuffer.length.toString(),
       },
     });
