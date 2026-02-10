@@ -9,8 +9,12 @@ import type {
   ChatMessage,
   ChatResponse,
 } from "@/lib/types";
+import { STAGES } from "@/lib/types";
 
 import { BASE_SYSTEM_PROMPT, STAGE_PROMPTS } from "@/lib/prompts/index";
+
+const MAX_MESSAGE_LENGTH = 10000;
+const MAX_HISTORY_MESSAGES = 40; // 20 user + 20 assistant turns
 
 // POST /api/chat -- send a message to Claude with stage context
 export async function POST(request: NextRequest) {
@@ -21,6 +25,27 @@ export async function POST(request: NextRequest) {
     if (!projectId || !stage || !message) {
       return NextResponse.json(
         { error: "Missing required fields: projectId, stage, message" },
+        { status: 400 }
+      );
+    }
+
+    if (typeof projectId !== "string" || typeof stage !== "string" || typeof message !== "string") {
+      return NextResponse.json(
+        { error: "Invalid field types" },
+        { status: 400 }
+      );
+    }
+
+    if (!STAGES.includes(stage as StageName)) {
+      return NextResponse.json(
+        { error: "Invalid stage name" },
+        { status: 400 }
+      );
+    }
+
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return NextResponse.json(
+        { error: `Message exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters` },
         { status: 400 }
       );
     }
@@ -75,8 +100,8 @@ Rules for your response:
 For the ${stageName} stage, valid field names for previewUpdates are:
 ${getFieldNames(stageName)}`;
 
-    // Build message history for this stage
-    const stageHistory: ChatMessage[] = conversations[stageName] || [];
+    // Build message history for this stage (cap to prevent unbounded growth)
+    const stageHistory: ChatMessage[] = (conversations[stageName] || []).slice(-MAX_HISTORY_MESSAGES);
     const messages = [
       ...stageHistory.map((m) => ({
         role: m.role as "user" | "assistant",
@@ -152,7 +177,7 @@ ${getFieldNames(stageName)}`;
 
     return NextResponse.json(parsed);
   } catch (error) {
-    console.error("Chat error:", error);
+    console.error("Chat error:", error instanceof Error ? error.message : "Unknown error");
     return NextResponse.json(
       { error: "Failed to process chat message" },
       { status: 500 }

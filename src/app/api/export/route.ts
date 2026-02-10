@@ -63,12 +63,12 @@ export async function POST(request: NextRequest) {
       status: 200,
       headers: {
         "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename="${agent.slug}.zip"`,
+        "Content-Disposition": `attachment; filename="${agent.slug.replace(/[^a-z0-9_-]/gi, "")}.zip"`,
         "Content-Length": zipBuffer.length.toString(),
       },
     });
   } catch (error) {
-    console.error("Export error:", error);
+    console.error("Export error:", error instanceof Error ? error.message : "Unknown error");
     return NextResponse.json(
       { error: "Failed to export agent" },
       { status: 500 }

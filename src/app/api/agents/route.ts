@@ -25,7 +25,7 @@ export async function GET() {
       }))
     );
   } catch (error) {
-    console.error("Failed to list agents:", error);
+    console.error("Failed to list agents:", error instanceof Error ? error.message : "Unknown error");
     return NextResponse.json(
       { error: "Failed to list agents" },
       { status: 500 }
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Failed to create agent:", error);
+    console.error("Failed to create agent:", error instanceof Error ? error.message : "Unknown error");
     return NextResponse.json(
       { error: "Failed to create agent" },
       { status: 500 }

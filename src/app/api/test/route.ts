@@ -17,6 +17,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (typeof projectId !== "string" || typeof message !== "string") {
+      return NextResponse.json(
+        { error: "Invalid field types" },
+        { status: 400 }
+      );
+    }
+
+    if (message.length > 10000) {
+      return NextResponse.json(
+        { error: "Message exceeds maximum length" },
+        { status: 400 }
+      );
+    }
+
     const agent = await prisma.agentProject.findUnique({
       where: { id: projectId },
     });
@@ -73,8 +87,9 @@ After your response, on a new line, add a JSON metadata block wrapped in <metada
 }
 </metadata>`;
 
-    // Build message history
-    const history = (conversationHistory || []).map(
+    // Build message history (cap to prevent unbounded growth)
+    const rawHistory = Array.isArray(conversationHistory) ? conversationHistory : [];
+    const history = rawHistory.slice(-40).map(
       (m: { role: string; content: string }) => ({
         role: m.role === "agent" ? ("assistant" as const) : ("user" as const),
         content: m.content,
@@ -109,7 +124,7 @@ After your response, on a new line, add a JSON metadata block wrapped in <metada
       metadata,
     });
   } catch (error) {
-    console.error("Test error:", error);
+    console.error("Test error:", error instanceof Error ? error.message : "Unknown error");
     return NextResponse.json(
       { error: "Failed to test agent" },
       { status: 500 }
