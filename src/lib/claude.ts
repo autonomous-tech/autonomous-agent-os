@@ -17,10 +17,7 @@ export async function chat(
     model: MODEL,
     max_tokens: 2048,
     system: systemPrompt,
-    messages: messages.map((m) => ({
-      role: m.role,
-      content: m.content,
-    })),
+    messages,
   });
 
   const textBlock = response.content.find((block) => block.type === "text");

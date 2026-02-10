@@ -6,11 +6,13 @@
 // Each template has a complete config and all 6 stages marked "approved."
 // =============================================================================
 
+import type { StageEntry } from "@/lib/types";
+
 /**
- * Agent configuration shape for templates.
- * Defined locally to avoid circular dependency with the main types module.
+ * Template config uses flat arrays for capabilities and triggers (not nested
+ * objects like the main AgentConfig type), so we define a loose shape here.
  */
-interface AgentConfig {
+interface TemplateConfig {
   mission?: {
     description: string;
     tasks: string[];
@@ -53,11 +55,6 @@ interface AgentConfig {
   };
 }
 
-interface StageData {
-  status: string;
-  data: Record<string, unknown>;
-}
-
 interface SeedTemplate {
   name: string;
   description: string;
@@ -70,7 +67,7 @@ interface SeedTemplate {
 // Template 1: Customer Support Agent -- "Helix"
 // =============================================================================
 
-const helixConfig: AgentConfig = {
+const helixConfig: TemplateConfig = {
   mission: {
     description: "Customer support agent that answers FAQs, logs issues, and escalates to humans",
     tasks: [
@@ -152,7 +149,7 @@ const helixConfig: AgentConfig = {
   },
 };
 
-const helixStages: Record<string, StageData> = {
+const helixStages: Record<string, StageEntry> = {
   mission: {
     status: "approved",
     data: {
@@ -208,7 +205,7 @@ const helixStages: Record<string, StageData> = {
 // Template 2: Research Assistant -- "Sage"
 // =============================================================================
 
-const sageConfig: AgentConfig = {
+const sageConfig: TemplateConfig = {
   mission: {
     description: "Research assistant that monitors topics, summarizes findings, and maintains a knowledge base",
     tasks: [
@@ -295,7 +292,7 @@ const sageConfig: AgentConfig = {
   },
 };
 
-const sageStages: Record<string, StageData> = {
+const sageStages: Record<string, StageEntry> = {
   mission: {
     status: "approved",
     data: {
@@ -351,7 +348,7 @@ const sageStages: Record<string, StageData> = {
 // Template 3: Sales Support Agent -- "Scout"
 // =============================================================================
 
-const scoutConfig: AgentConfig = {
+const scoutConfig: TemplateConfig = {
   mission: {
     description: "Sales support agent that drafts outreach, researches prospects, and prepares for calls",
     tasks: [
@@ -443,7 +440,7 @@ const scoutConfig: AgentConfig = {
   },
 };
 
-const scoutStages: Record<string, StageData> = {
+const scoutStages: Record<string, StageEntry> = {
   mission: {
     status: "approved",
     data: {

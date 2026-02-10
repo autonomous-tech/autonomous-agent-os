@@ -149,6 +149,32 @@ export interface ValidationResult {
   warnings: ValidationError[];
 }
 
+// ── Config accessors (handle both nested and flat shapes) ────────
+
+/**
+ * Extract tools array from config, handling both shapes:
+ * - { tools: [...] } (our AgentConfig type)
+ * - [...] (flat array from templates)
+ */
+export function getTools(config: AgentConfig): Capability[] {
+  const caps = config.capabilities;
+  if (!caps) return [];
+  if (Array.isArray(caps)) return caps as unknown as Capability[];
+  return caps.tools || [];
+}
+
+/**
+ * Extract triggers array from config, handling both shapes:
+ * - { triggers: [...] } (our AgentConfig type)
+ * - [...] (flat array from templates)
+ */
+export function getTriggers(config: AgentConfig): Trigger[] {
+  const trigs = config.triggers;
+  if (!trigs) return [];
+  if (Array.isArray(trigs)) return trigs as unknown as Trigger[];
+  return trigs.triggers || [];
+}
+
 // ── Default stage data ────────────────────────────────────────────
 
 export function defaultStageData(): StageData {

@@ -1,34 +1,7 @@
 import JSZip from "jszip";
 import type { AgentProject } from "@/generated/prisma/client";
-import type { AgentConfig, StageData, ValidationResult, ValidationError, Capability } from "@/lib/types";
-
-/**
- * Extract tools array from config, handling both shapes:
- * - { tools: [...] } (our AgentConfig type)
- * - [...] (flat array from templates)
- */
-function getTools(config: AgentConfig): Capability[] {
-  const caps = config.capabilities;
-  if (!caps) return [];
-  if (Array.isArray(caps)) {
-    return caps as unknown as Capability[];
-  }
-  return caps.tools || [];
-}
-
-/**
- * Extract triggers array from config, handling both shapes:
- * - { triggers: [...] } (our AgentConfig type)
- * - [...] (flat array from templates)
- */
-function getTriggers(config: AgentConfig): Array<{ type: string; name?: string; description: string; channels?: string[]; source?: string; response_mode?: string; action?: string }> {
-  const trigs = config.triggers;
-  if (!trigs) return [];
-  if (Array.isArray(trigs)) {
-    return trigs as unknown as Array<{ type: string; name?: string; description: string; channels?: string[]; source?: string }>;
-  }
-  return trigs.triggers || [];
-}
+import type { AgentConfig, StageData, ValidationResult, ValidationError } from "@/lib/types";
+import { getTools, getTriggers } from "@/lib/types";
 
 /**
  * Validate an agent configuration before export.

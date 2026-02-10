@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Loader2 } from "lucide-react";
-import type { ChatMessage, StageName, ChatResponse, AgentConfig } from "@/lib/types";
+import type { ChatMessage, StageName, ChatResponse } from "@/lib/types";
 
 interface ChatPaneProps {
   projectId: string;

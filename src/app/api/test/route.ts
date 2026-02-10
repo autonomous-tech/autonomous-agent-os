@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { chat } from "@/lib/claude";
 import type { AgentConfig } from "@/lib/types";
+import { getTools } from "@/lib/types";
 
 // POST /api/test -- test agent in sandbox (Claude role-plays as the agent)
 export async function POST(request: NextRequest) {
@@ -28,10 +29,8 @@ export async function POST(request: NextRequest) {
     }
 
     const config: AgentConfig = JSON.parse(agent.config);
-    const identity = config.identity;
-    const mission = config.mission;
-    const guardrails = config.guardrails;
-    const capabilities = config.capabilities;
+    const { identity, mission, guardrails } = config;
+    const tools = getTools(config);
 
     // Build a system prompt that makes Claude role-play as the agent
     const agentName = identity?.name || agent.name || "Agent";
@@ -49,12 +48,9 @@ ${mission?.tasks ? `Key Tasks:\n${mission.tasks.map((t) => `- ${t}`).join("\n")}
 ${mission?.exclusions ? `Exclusions (NEVER do these):\n${mission.exclusions.map((e) => `- ${e}`).join("\n")}` : ""}
 
 CAPABILITIES:
-${(() => {
-  const tools = Array.isArray(capabilities) ? capabilities : capabilities?.tools;
-  return tools && tools.length > 0
-    ? tools.map((t: { name: string; access: string; description: string }) => `- ${t.name} (${t.access}): ${t.description}`).join("\n")
-    : "No specific tools configured.";
-})()}
+${tools.length > 0
+    ? tools.map((t) => `- ${t.name} (${t.access}): ${t.description}`).join("\n")
+    : "No specific tools configured."}
 
 GUARDRAILS:
 ${guardrails?.behavioral ? guardrails.behavioral.map((g) => `- ${g}`).join("\n") : "- Follow general safety guidelines"}
