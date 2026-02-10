@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { inferFromDescription } from "@/lib/claude";
 import { defaultStageData, defaultConversations } from "@/lib/types";
+import { generateSlug } from "@/lib/slug";
 import type { AgentConfig, StageData } from "@/lib/types";
 
 // GET /api/agents -- list all agent projects
@@ -24,7 +25,7 @@ export async function GET() {
       }))
     );
   } catch (error) {
-    console.error("Failed to list agents:", error);
+    console.error("Failed to list agents:", error instanceof Error ? error.message : "Unknown error");
     return NextResponse.json(
       { error: "Failed to list agents" },
       { status: 500 }
@@ -87,14 +88,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate slug from name
-    const slug =
-      name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "") +
-      "-" +
-      Date.now().toString(36);
+    // Generate slug from name with timestamp suffix for uniqueness
+    const slug = generateSlug(name) + "-" + Date.now().toString(36);
 
     const agent = await prisma.agentProject.create({
       data: {
@@ -122,7 +117,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Failed to create agent:", error);
+    console.error("Failed to create agent:", error instanceof Error ? error.message : "Unknown error");
     return NextResponse.json(
       { error: "Failed to create agent" },
       { status: 500 }

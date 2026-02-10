@@ -29,7 +29,7 @@ export async function GET(
       exportedAt: agent.exportedAt,
     });
   } catch (error) {
-    console.error("Failed to get agent:", error);
+    console.error("Failed to get agent:", error instanceof Error ? error.message : "Unknown error");
     return NextResponse.json(
       { error: "Failed to get agent" },
       { status: 500 }
@@ -51,27 +51,60 @@ export async function PATCH(
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
-    // Build update data -- serialize JSON fields back to strings
+    // Build update data -- only allow safe fields
+    const ALLOWED_FIELDS = ["name", "description", "config", "stages", "conversations"] as const;
+    const VALID_STATUSES = ["draft", "building", "exported"];
     const updateData: Record<string, unknown> = {};
 
-    if (body.name !== undefined) updateData.name = body.name;
-    if (body.slug !== undefined) updateData.slug = body.slug;
-    if (body.description !== undefined) updateData.description = body.description;
-    if (body.status !== undefined) updateData.status = body.status;
+    if (body.name !== undefined) {
+      if (typeof body.name !== "string" || body.name.length > 200) {
+        return NextResponse.json({ error: "Invalid name" }, { status: 400 });
+      }
+      updateData.name = body.name;
+    }
+    if (body.description !== undefined) {
+      if (typeof body.description !== "string") {
+        return NextResponse.json({ error: "Invalid description" }, { status: 400 });
+      }
+      updateData.description = body.description;
+    }
+    if (body.status !== undefined) {
+      if (!VALID_STATUSES.includes(body.status)) {
+        return NextResponse.json({ error: "Invalid status value" }, { status: 400 });
+      }
+      updateData.status = body.status;
+    }
     if (body.config !== undefined) {
+      if (typeof body.config !== "object" || body.config === null || Array.isArray(body.config)) {
+        return NextResponse.json({ error: "Invalid config" }, { status: 400 });
+      }
       // Merge with existing config
       const existingConfig = JSON.parse(agent.config);
       const mergedConfig = { ...existingConfig, ...body.config };
       updateData.config = JSON.stringify(mergedConfig);
     }
     if (body.stages !== undefined) {
+      if (typeof body.stages !== "object" || body.stages === null || Array.isArray(body.stages)) {
+        return NextResponse.json({ error: "Invalid stages" }, { status: 400 });
+      }
       updateData.stages = JSON.stringify(body.stages);
     }
     if (body.conversations !== undefined) {
+      if (typeof body.conversations !== "object" || body.conversations === null || Array.isArray(body.conversations)) {
+        return NextResponse.json({ error: "Invalid conversations" }, { status: 400 });
+      }
       updateData.conversations = JSON.stringify(body.conversations);
     }
-    if (body.exportedAt !== undefined) {
-      updateData.exportedAt = body.exportedAt;
+
+    // Reject fields not in allowlist (slug, exportedAt, etc. are server-managed)
+    const bodyKeys = Object.keys(body);
+    const allowed = new Set<string>([...ALLOWED_FIELDS, "status"]);
+    const rejected = bodyKeys.filter((k) => !allowed.has(k));
+    if (rejected.length > 0) {
+      return NextResponse.json(
+        { error: `Fields not allowed: ${rejected.join(", ")}` },
+        { status: 400 }
+      );
     }
 
     const updated = await prisma.agentProject.update({
@@ -94,7 +127,7 @@ export async function PATCH(
       exportedAt: updated.exportedAt,
     });
   } catch (error) {
-    console.error("Failed to update agent:", error);
+    console.error("Failed to update agent:", error instanceof Error ? error.message : "Unknown error");
     return NextResponse.json(
       { error: "Failed to update agent" },
       { status: 500 }
@@ -119,7 +152,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Failed to delete agent:", error);
+    console.error("Failed to delete agent:", error instanceof Error ? error.message : "Unknown error");
     return NextResponse.json(
       { error: "Failed to delete agent" },
       { status: 500 }

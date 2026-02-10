@@ -16,7 +16,7 @@ import type {
   ChatMessage,
   StageStatus,
 } from "@/lib/types";
-import { defaultStageData, defaultConversations } from "@/lib/types";
+import { STAGES, defaultStageData, defaultConversations } from "@/lib/types";
 
 interface AgentData {
   id: string;
@@ -63,15 +63,7 @@ export default function BuilderPage() {
         setConversations(data.conversations || defaultConversations());
 
         // Set initial stage based on first incomplete stage
-        const stageOrder: StageName[] = [
-          "mission",
-          "identity",
-          "capabilities",
-          "memory",
-          "triggers",
-          "guardrails",
-        ];
-        const firstIncomplete = stageOrder.find(
+        const firstIncomplete = STAGES.find(
           (s) => !data.stages?.[s] || data.stages[s].status === "incomplete"
         );
         if (firstIncomplete) {

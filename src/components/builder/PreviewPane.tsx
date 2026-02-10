@@ -24,29 +24,7 @@ import type {
   StageName,
   Capability,
 } from "@/lib/types";
-
-// ── Helpers ──────────────────────────────────────────────────────────
-
-function getCapabilities(config: AgentConfig): Capability[] {
-  const caps = config.capabilities;
-  if (!caps) return [];
-  if (Array.isArray(caps)) return caps as unknown as Capability[];
-  return caps.tools || [];
-}
-
-function getTriggers(
-  config: AgentConfig
-): Array<{ type: string; description: string; channels?: string[] }> {
-  const trigs = config.triggers;
-  if (!trigs) return [];
-  if (Array.isArray(trigs))
-    return trigs as unknown as Array<{
-      type: string;
-      description: string;
-      channels?: string[];
-    }>;
-  return trigs.triggers || [];
-}
+import { getTools, getTriggers } from "@/lib/types";
 
 // ── Editable list component ──────────────────────────────────────────
 
@@ -97,7 +75,6 @@ function EditableList({
 
 interface SectionProps {
   title: string;
-  stage: StageName;
   status: string;
   isEditing: boolean;
   onStartEdit: () => void;
@@ -248,7 +225,6 @@ export function PreviewPane({
             {/* ── Mission ── */}
             <Section
               title="Mission"
-              stage="mission"
               status={stages.mission?.status || "incomplete"}
               isEditing={editingSection === "mission"}
               onStartEdit={() => startEdit("mission")}
@@ -347,7 +323,6 @@ export function PreviewPane({
             {/* ── Identity ── */}
             <Section
               title="Identity"
-              stage="identity"
               status={stages.identity?.status || "incomplete"}
               isEditing={editingSection === "identity"}
               onStartEdit={() => startEdit("identity")}
@@ -463,7 +438,6 @@ export function PreviewPane({
             {/* ── Capabilities ── */}
             <Section
               title="Capabilities"
-              stage="capabilities"
               status={stages.capabilities?.status || "incomplete"}
               isEditing={editingSection === "capabilities"}
               onStartEdit={() => startEdit("capabilities")}
@@ -562,9 +536,9 @@ export function PreviewPane({
                 </div>
               }
             >
-              {getCapabilities(config).length > 0 ? (
+              {getTools(config).length > 0 ? (
                 <div className="space-y-1.5">
-                  {getCapabilities(config).map((tool, i) => (
+                  {getTools(config).map((tool, i) => (
                     <div key={i} className="flex items-start gap-2">
                       <Badge
                         variant="outline"
@@ -593,7 +567,6 @@ export function PreviewPane({
             {/* ── Memory ── */}
             <Section
               title="Memory"
-              stage="memory"
               status={stages.memory?.status || "incomplete"}
               isEditing={editingSection === "memory"}
               onStartEdit={() => startEdit("memory")}
@@ -697,7 +670,6 @@ export function PreviewPane({
             {/* ── Triggers ── */}
             <Section
               title="Triggers"
-              stage="triggers"
               status={stages.triggers?.status || "incomplete"}
               isEditing={editingSection === "triggers"}
               onStartEdit={() => startEdit("triggers")}
@@ -820,7 +792,6 @@ export function PreviewPane({
             {/* ── Guardrails ── */}
             <Section
               title="Guardrails"
-              stage="guardrails"
               status={stages.guardrails?.status || "incomplete"}
               isEditing={editingSection === "guardrails"}
               onStartEdit={() => startEdit("guardrails")}
