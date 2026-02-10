@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model AgentProject {
+  id             String    @id @default(cuid())
+  name           String
+  slug           String    @unique
+  description    String    @default("")
+  status         String    @default("draft")
+  config         String    @default("{}")
+  stages         String    @default("{}")
+  conversations  String    @default("{}")
+  templateId     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  exportedAt     DateTime?
+}
+
+model AgentTemplate {
+  id          String @id @default(cuid())
+  name        String
+  description String
+  category    String
+  config      String
+  stages      String
+}
