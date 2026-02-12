@@ -51,6 +51,25 @@ export async function POST(
     // Build runtime system prompt
     const systemPrompt = buildRuntimeSystemPrompt(config);
 
+    // Snapshot active MCP server configs for this agent
+    const activeMcpServers = await prisma.mcpServerConfig.findMany({
+      where: { agentId: id, status: "active" },
+    });
+    const mcpConfig = JSON.stringify(
+      activeMcpServers.map((s) => ({
+        name: s.name,
+        transport: s.transport,
+        command: s.command,
+        args: JSON.parse(s.args),
+        url: s.url,
+        env: JSON.parse(s.env),
+        allowedTools: JSON.parse(s.allowedTools),
+        blockedTools: JSON.parse(s.blockedTools),
+        sandbox: JSON.parse(s.sandboxConfig),
+        status: s.status,
+      }))
+    );
+
     // Create deployment
     const deployment = await prisma.deployment.create({
       data: {
@@ -58,6 +77,7 @@ export async function POST(
         version,
         config: agent.config,
         systemPrompt,
+        mcpConfig,
         status: "active",
       },
     });

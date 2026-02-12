@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -23,6 +23,7 @@ import {
   Pause,
   ExternalLink,
   RefreshCw,
+  Wrench,
 } from "lucide-react";
 import {
   MissionSection,
@@ -158,6 +159,22 @@ export function PreviewPane({
   const [showTestChat, setShowTestChat] = useState(false);
   const [editingSection, setEditingSection] = useState<StageName | null>(null);
   const [draft, setDraft] = useState<Record<string, unknown>>({});
+  const [mcpServers, setMcpServers] = useState<Array<{id: string; name: string; transport: string; status: string}>>([]);
+
+  useEffect(() => {
+    async function fetchMcpServers() {
+      try {
+        const res = await fetch(`/api/agents/${projectId}/mcp-servers`);
+        if (res.ok) {
+          const data = await res.json();
+          setMcpServers(data.servers || []);
+        }
+      } catch {
+        // Silently ignore — MCP servers are optional
+      }
+    }
+    fetchMcpServers();
+  }, [projectId]);
 
   const hasAnyStageCompleted = Object.values(stages).some(
     (s) => s.status === "draft" || s.status === "approved"
@@ -293,6 +310,33 @@ export function PreviewPane({
                 onDraftChange={setDraft}
               />
             </Section>
+
+            {/* MCP Servers - only show if any are configured */}
+            {mcpServers.length > 0 && (
+              <>
+                <Separator />
+                <div className="rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                      <Wrench className="h-3.5 w-3.5 text-muted-foreground" />
+                      Executable Tools
+                    </h3>
+                    <Badge variant="secondary" className="text-xs">
+                      {mcpServers.length} server{mcpServers.length !== 1 ? "s" : ""}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {mcpServers.map((server) => (
+                      <div key={server.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className={cn("h-1.5 w-1.5 rounded-full", server.status === "active" ? "bg-green-500" : "bg-muted-foreground/30")} />
+                        <span>{server.name}</span>
+                        <span className="text-muted-foreground/50">({server.transport})</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             <Separator />
 

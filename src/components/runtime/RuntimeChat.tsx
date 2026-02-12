@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Loader2, RotateCcw } from "lucide-react";
+import { Send, Loader2, RotateCcw, Wrench } from "lucide-react";
 
 interface AgentInfo {
   name: string;
@@ -19,6 +19,7 @@ interface RuntimeMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  toolsUsed?: string[];
 }
 
 interface SessionInfo {
@@ -42,6 +43,7 @@ export function RuntimeChat({ slug }: RuntimeChatProps) {
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<SessionInfo | null>(null);
   const [guardrailNotice, setGuardrailNotice] = useState<string | null>(null);
+  const [isUsingTools, setIsUsingTools] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -111,11 +113,17 @@ export function RuntimeChat({ slug }: RuntimeChatProps) {
       }
 
       const data = await res.json();
+      const toolsUsed = data.toolsUsed as string[] | undefined;
+      if (toolsUsed && toolsUsed.length > 0) {
+        setIsUsingTools(true);
+      }
       setMessages((prev) => [...prev, {
         id: data.message.id,
         role: "assistant",
         content: data.message.content,
+        toolsUsed: toolsUsed,
       }]);
+      setIsUsingTools(false);
       setSession(data.session);
       if (data.guardrailNotice) {
         setGuardrailNotice(data.guardrailNotice);
@@ -198,8 +206,16 @@ export function RuntimeChat({ slug }: RuntimeChatProps) {
               key={msg.id}
               className={msg.role === "user" ? "flex justify-end" : "flex justify-start"}
             >
-              <div className={msg.role === "user" ? "chat-bubble-user" : "chat-bubble-assistant"}>
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+              <div>
+                <div className={msg.role === "user" ? "chat-bubble-user" : "chat-bubble-assistant"}>
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                </div>
+                {msg.toolsUsed && msg.toolsUsed.length > 0 && (
+                  <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                    <Wrench className="h-3 w-3" />
+                    <span>Used {msg.toolsUsed.length} tool{msg.toolsUsed.length !== 1 ? "s" : ""}: {msg.toolsUsed.join(", ")}</span>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -208,8 +224,17 @@ export function RuntimeChat({ slug }: RuntimeChatProps) {
             <div className="flex justify-start">
               <div className="chat-bubble-assistant">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>{agentInfo.name} is thinking...</span>
+                  {isUsingTools ? (
+                    <>
+                      <Wrench className="h-4 w-4 animate-pulse" />
+                      <span>Using tools...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>{agentInfo.name} is thinking...</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

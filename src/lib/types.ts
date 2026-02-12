@@ -49,9 +49,16 @@ export interface Skill {
   constraints?: string[];
 }
 
+export interface ExecutableToolConfig {
+  serverName: string;         // References McpServerConfig.name
+  toolPattern?: string;       // Glob pattern for matching tools (default: "*")
+  access?: "read-only" | "write" | "full";
+}
+
 export interface CapabilitiesConfig {
   tools?: Capability[];
   skills?: Skill[];
+  executableTools?: ExecutableToolConfig[];
 }
 
 export interface MemoryConfig {
@@ -83,6 +90,8 @@ export interface GuardrailsConfig {
     max_turns_per_session?: number;
     escalation_threshold?: number;
     max_response_length?: number;
+    max_tool_calls_per_session?: number;
+    max_tool_calls_per_hour?: number;
   };
 }
 

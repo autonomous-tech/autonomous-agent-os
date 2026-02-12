@@ -1,3 +1,5 @@
+import type { ToolUseRecord } from "./tools.types";
+
 // Runtime message stored in ChatSession.messages JSON array
 export interface RuntimeMessage {
   id: string;
@@ -5,6 +7,7 @@ export interface RuntimeMessage {
   content: string;
   timestamp: string; // ISO 8601
   metadata?: Record<string, unknown>;
+  toolUses?: ToolUseRecord[];
 }
 
 // Result of a pre-message guardrail check
@@ -32,4 +35,5 @@ export interface ProcessMessageResult {
   response: RuntimeMessage;
   sessionUpdates: SessionUpdates;
   guardrailNotice?: string;
+  toolExecutions?: ToolUseRecord[];
 }

@@ -22,6 +22,7 @@ model AgentProject {
   exportedAt     DateTime?
 
   deployments    Deployment[]
+  mcpServers     McpServerConfig[]
 }
 
 model AgentTemplate {
@@ -39,12 +40,14 @@ model Deployment {
   version       Int           @default(1)
   config        String        // Frozen AgentConfig snapshot (JSON string)
   systemPrompt  String        // Pre-built runtime system prompt
+  mcpConfig     String        @default("[]") // Frozen MCP server config snapshot (JSON string)
   status        String        @default("active") // "active" | "paused" | "retired"
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
   agent         AgentProject  @relation(fields: [agentId], references: [id], onDelete: Cascade)
   sessions      ChatSession[]
+  toolLogs      ToolExecutionLog[]
 
   @@index([agentId])
 }
@@ -62,7 +65,50 @@ model ChatSession {
   updatedAt      DateTime    @updatedAt
 
   deployment     Deployment  @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+  toolLogs       ToolExecutionLog[]
 
   @@index([deploymentId])
   @@index([token])
+}
+
+model McpServerConfig {
+  id            String       @id @default(cuid())
+  agentId       String
+  name          String       // Human-readable server name (e.g. "filesystem", "jira-cloud")
+  transport     String       // "stdio" | "sse" | "http"
+  command       String?      // For stdio: the command to run
+  args          String       @default("[]") // JSON array of command arguments
+  url           String?      // For sse/http: the endpoint URL
+  env           String       @default("{}") // JSON object of environment variables
+  allowedTools  String       @default("[]") // JSON array of allowed tool name patterns
+  blockedTools  String       @default("[]") // JSON array of blocked tool name patterns
+  sandboxConfig String       @default("{}") // JSON SandboxConfig
+  status        String       @default("active") // "active" | "inactive"
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  agent         AgentProject @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, name])
+  @@index([agentId])
+}
+
+model ToolExecutionLog {
+  id            String       @id @default(cuid())
+  sessionId     String?
+  deploymentId  String
+  toolName      String
+  serverName    String
+  input         String       @default("{}") // JSON tool input
+  output        String       @default("{}") // JSON tool output
+  isError       Boolean      @default(false)
+  durationMs    Int          @default(0)
+  createdAt     DateTime     @default(now())
+
+  session       ChatSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  deployment    Deployment   @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([deploymentId])
+  @@index([toolName])
 }

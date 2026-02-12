@@ -160,7 +160,8 @@ describe('Flow: Session Lifecycle', () => {
       expect.anything(),
       expect.anything(),
       expect.anything(),
-      'One more'
+      'One more',
+      undefined
     )
   })
 

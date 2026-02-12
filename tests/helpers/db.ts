@@ -54,6 +54,19 @@ export function getMockedPrisma() {
       update: MockedFunction
       delete: MockedFunction
     }
+    mcpServerConfig: {
+      findMany: MockedFunction
+      findUnique: MockedFunction
+      findFirst: MockedFunction
+      create: MockedFunction
+      update: MockedFunction
+      delete: MockedFunction
+    }
+    toolExecutionLog: {
+      findMany: MockedFunction
+      create: MockedFunction
+      createMany: MockedFunction
+    }
   }
 }
 
@@ -128,6 +141,16 @@ export function cleanupDb() {
     ;(fn as MockedFunction).mockReset()
   })
 
+  // Reset McpServerConfig mocks
+  Object.values(mocked.mcpServerConfig).forEach((fn) => {
+    ;(fn as MockedFunction).mockReset()
+  })
+
+  // Reset ToolExecutionLog mocks
+  Object.values(mocked.toolExecutionLog).forEach((fn) => {
+    ;(fn as MockedFunction).mockReset()
+  })
+
   // Re-set default resolved values
   mocked.agentProject.findMany.mockResolvedValue([])
   mocked.agentProject.findUnique.mockResolvedValue(null)
@@ -152,6 +175,15 @@ export function cleanupDb() {
   mocked.chatSession.create.mockResolvedValue(null)
   mocked.chatSession.update.mockResolvedValue(null)
   mocked.chatSession.delete.mockResolvedValue(null)
+  mocked.mcpServerConfig.findMany.mockResolvedValue([])
+  mocked.mcpServerConfig.findUnique.mockResolvedValue(null)
+  mocked.mcpServerConfig.findFirst.mockResolvedValue(null)
+  mocked.mcpServerConfig.create.mockResolvedValue(null)
+  mocked.mcpServerConfig.update.mockResolvedValue(null)
+  mocked.mcpServerConfig.delete.mockResolvedValue(null)
+  mocked.toolExecutionLog.findMany.mockResolvedValue([])
+  mocked.toolExecutionLog.create.mockResolvedValue(null)
+  mocked.toolExecutionLog.createMany.mockResolvedValue({ count: 0 })
 }
 
 // ---------------------------------------------------------------------------

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import type { AgentConfig } from "@/lib/types";
 import type { RuntimeMessage } from "@/lib/runtime/types";
+import type { McpServerDefinition } from "@/lib/runtime/tools.types";
 import { processMessage } from "@/lib/runtime/engine";
 
 // POST /api/runtime/[slug]/chat — Public runtime chat endpoint
@@ -36,6 +37,17 @@ export async function POST(
     }
 
     const config: AgentConfig = JSON.parse(deployment.config);
+
+    // Parse MCP server definitions from the deployment snapshot
+    let mcpServers: McpServerDefinition[] = [];
+    try {
+      if (deployment.mcpConfig) {
+        mcpServers = JSON.parse(deployment.mcpConfig);
+      }
+    } catch {
+      // If mcpConfig is malformed, proceed without MCP servers
+      mcpServers = [];
+    }
 
     // Find or create session
     let session;
@@ -74,7 +86,8 @@ export async function POST(
       session.turnCount,
       session.failedAttempts,
       history,
-      message
+      message,
+      mcpServers.length > 0 ? mcpServers : undefined
     );
 
     // Build the user message to persist
@@ -97,6 +110,22 @@ export async function POST(
       },
     });
 
+    // Log tool executions if any occurred
+    if (result.toolExecutions && result.toolExecutions.length > 0) {
+      await prisma.toolExecutionLog.createMany({
+        data: result.toolExecutions.map((exec) => ({
+          sessionId: session.id,
+          deploymentId: deployment.id,
+          toolName: exec.toolName,
+          serverName: exec.serverName,
+          input: JSON.stringify(exec.input),
+          output: exec.output,
+          isError: exec.isError,
+          durationMs: exec.durationMs,
+        })),
+      });
+    }
+
     // Build response
     const maxTurns = config.guardrails?.resource_limits?.max_turns_per_session ?? 50;
     const responseBody: Record<string, unknown> = {
@@ -108,6 +137,10 @@ export async function POST(
         maxTurns,
       },
     };
+
+    if (result.toolExecutions && result.toolExecutions.length > 0) {
+      responseBody.toolsUsed = result.toolExecutions.map((exec) => exec.toolName);
+    }
 
     if (result.guardrailNotice) {
       responseBody.guardrailNotice = result.guardrailNotice;

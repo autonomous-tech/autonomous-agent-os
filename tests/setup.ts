@@ -47,6 +47,19 @@ vi.mock('@/lib/db', () => {
       update: vi.fn().mockResolvedValue(null),
       delete: vi.fn().mockResolvedValue(null),
     },
+    mcpServerConfig: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findFirst: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue(null),
+      update: vi.fn().mockResolvedValue(null),
+      delete: vi.fn().mockResolvedValue(null),
+    },
+    toolExecutionLog: {
+      findMany: vi.fn().mockResolvedValue([]),
+      create: vi.fn().mockResolvedValue(null),
+      createMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
   }
 
   return { prisma: mockPrisma }
@@ -61,6 +74,15 @@ vi.mock('@/lib/db', () => {
 
 vi.mock('@/lib/claude', () => {
   return {
+    chatWithTools: vi.fn().mockResolvedValue({
+      id: 'msg_mock',
+      type: 'message',
+      role: 'assistant',
+      content: [{ type: 'text', text: 'Mock tool response' }],
+      stop_reason: 'end_turn',
+      model: 'claude-sonnet-4-5-20250929',
+      usage: { input_tokens: 0, output_tokens: 0 },
+    }),
     chat: vi.fn().mockResolvedValue(
       JSON.stringify({
         reply: 'Mock response from the builder.',

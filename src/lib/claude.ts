@@ -1,4 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
+import type { MessageParam, Tool, ContentBlockParam } from "@anthropic-ai/sdk/resources/messages";
+
+export type { Anthropic, MessageParam, Tool, ContentBlockParam };
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -23,6 +26,28 @@ export async function chat(
 
   const textBlock = response.content.find((block) => block.type === "text");
   return textBlock ? textBlock.text : "";
+}
+
+/**
+ * Send a conversation to Claude with tool definitions.
+ * Returns the full Anthropic.Message so the caller can inspect stop_reason
+ * and tool_use content blocks for the agentic loop.
+ */
+export async function chatWithTools(
+  systemPrompt: string,
+  messages: MessageParam[],
+  options?: {
+    maxTokens?: number;
+    tools?: Tool[];
+  }
+): Promise<Anthropic.Message> {
+  return client.messages.create({
+    model: MODEL,
+    max_tokens: options?.maxTokens ?? 4096,
+    system: systemPrompt,
+    messages,
+    ...(options?.tools?.length ? { tools: options.tools } : {}),
+  });
 }
 
 /**
