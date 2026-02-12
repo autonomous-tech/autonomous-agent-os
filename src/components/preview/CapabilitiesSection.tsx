@@ -71,6 +71,11 @@ export function CapabilitiesSection({
       {tools.map((tool, i) => (
         <ToolCard key={i} tool={tool} />
       ))}
+      <p className="text-[10px] text-muted-foreground/50 mt-2">
+        These describe what the agent should have access to. They appear in the
+        exported system prompt — the deployment platform is responsible for
+        wiring up actual integrations.
+      </p>
     </div>
   );
 }

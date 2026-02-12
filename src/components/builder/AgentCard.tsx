@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ExternalLink } from "lucide-react";
 
 interface AgentCardProps {
   id: string;
@@ -10,12 +11,14 @@ interface AgentCardProps {
   description?: string;
   status: string;
   createdAt: string;
+  slug?: string;
 }
 
 const statusVariant: Record<string, "default" | "secondary" | "outline"> = {
   draft: "outline",
   building: "secondary",
   exported: "default",
+  deployed: "default",
 };
 
 export function AgentCard({
@@ -24,6 +27,7 @@ export function AgentCard({
   description,
   status,
   createdAt,
+  slug,
 }: AgentCardProps) {
   const date = new Date(createdAt).toLocaleDateString("en-US", {
     month: "short",
@@ -41,6 +45,17 @@ export function AgentCard({
               <Badge variant={statusVariant[status] || "outline"}>
                 {status}
               </Badge>
+              {status === "deployed" && slug && (
+                <a
+                  href={`/a/${slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              )}
             </div>
             {description && (
               <p className="text-sm text-muted-foreground line-clamp-1">

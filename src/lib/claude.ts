@@ -11,11 +11,12 @@ const MODEL = "claude-sonnet-4-5-20250929";
  */
 export async function chat(
   systemPrompt: string,
-  messages: Array<{ role: "user" | "assistant"; content: string }>
+  messages: Array<{ role: "user" | "assistant"; content: string }>,
+  options?: { maxTokens?: number }
 ): Promise<string> {
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 2048,
+    max_tokens: options?.maxTokens ?? 2048,
     system: systemPrompt,
     messages,
   });

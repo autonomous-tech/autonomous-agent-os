@@ -397,3 +397,41 @@ export function createMockHelixProject(overrides: Record<string, unknown> = {}) 
     ...overrides,
   }
 }
+
+// ---------------------------------------------------------------------------
+// Mock Deployment factory
+// ---------------------------------------------------------------------------
+
+export function createMockDeployment(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'dep_abc123',
+    agentId: 'clx1abc2def',
+    version: 1,
+    config: JSON.stringify(sampleAgentConfig),
+    systemPrompt: 'You are Fixie.\n\nIDENTITY:\n- Name: Fixie\n- Tone: casual-professional',
+    status: 'active',
+    createdAt: new Date('2026-02-10T12:30:00.000Z'),
+    updatedAt: new Date('2026-02-10T12:30:00.000Z'),
+    ...overrides,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Mock ChatSession factory
+// ---------------------------------------------------------------------------
+
+export function createMockChatSession(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'ses_abc123',
+    deploymentId: 'dep_abc123',
+    token: 'ses_testtoken_abcdef12',
+    messages: '[]',
+    turnCount: 0,
+    failedAttempts: 0,
+    status: 'active',
+    metadata: '{}',
+    createdAt: new Date('2026-02-10T13:00:00.000Z'),
+    updatedAt: new Date('2026-02-10T13:00:00.000Z'),
+    ...overrides,
+  }
+}

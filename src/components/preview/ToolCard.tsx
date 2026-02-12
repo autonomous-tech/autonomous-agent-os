@@ -2,12 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import {
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent,
-} from "@/components/ui/collapsible";
-import { ChevronRight, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ToolData {
@@ -106,17 +101,6 @@ export function ToolCard({
           {tool.description}
         </p>
       )}
-      <Collapsible>
-        <CollapsibleTrigger className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground mt-2 group/trigger">
-          <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]/trigger:rotate-90" />
-          Settings
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <p className="text-[10px] text-muted-foreground/60 italic mt-1.5 pl-4">
-            No integrations configured
-          </p>
-        </CollapsibleContent>
-      </Collapsible>
     </div>
   );
 }

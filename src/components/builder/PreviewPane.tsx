@@ -19,6 +19,10 @@ import {
   Check,
   X,
   ChevronDown,
+  Rocket,
+  Pause,
+  ExternalLink,
+  RefreshCw,
 } from "lucide-react";
 import {
   MissionSection,
@@ -128,6 +132,12 @@ interface PreviewPaneProps {
   isExporting: boolean;
   onStageSelect: (stage: StageName) => void;
   onConfigUpdate?: (stage: StageName, data: Record<string, unknown>) => void;
+  deployment?: { id: string; status: string; version: number; createdAt: string } | null;
+  agentSlug?: string;
+  onDeploy?: () => void;
+  onPause?: () => void;
+  onResume?: () => void;
+  isDeploying?: boolean;
 }
 
 export function PreviewPane({
@@ -138,6 +148,12 @@ export function PreviewPane({
   isExporting,
   onStageSelect,
   onConfigUpdate,
+  deployment,
+  agentSlug,
+  onDeploy,
+  onPause,
+  onResume,
+  isDeploying,
 }: PreviewPaneProps) {
   const [showTestChat, setShowTestChat] = useState(false);
   const [editingSection, setEditingSection] = useState<StageName | null>(null);
@@ -362,28 +378,92 @@ export function PreviewPane({
       </ScrollArea>
 
       {/* Action buttons */}
-      <div className="border-t p-4 flex gap-2">
-        <Button
-          variant="outline"
-          className="flex-1"
-          onClick={() => setShowTestChat(true)}
-          disabled={!hasAnyStageCompleted}
-        >
-          <Play className="h-4 w-4 mr-2" />
-          Try It
-        </Button>
-        <Button
-          className="flex-1"
-          onClick={onExport}
-          disabled={isExporting}
-        >
-          {isExporting ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Download className="h-4 w-4 mr-2" />
-          )}
-          Export
-        </Button>
+      <div className="border-t p-4 flex flex-col gap-2">
+        {deployment?.status === "active" && agentSlug && (
+          <div className="flex items-center justify-between px-1 pb-1">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-green-500" />
+              <span className="text-xs text-green-500 font-medium">Live — v{deployment.version}</span>
+            </div>
+            <a
+              href={`/a/${agentSlug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+            >
+              /a/{agentSlug} <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
+        )}
+        {deployment?.status === "paused" && (
+          <div className="flex items-center gap-2 px-1 pb-1">
+            <span className="h-2 w-2 rounded-full bg-yellow-500" />
+            <span className="text-xs text-yellow-500 font-medium">Paused — v{deployment.version}</span>
+          </div>
+        )}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => setShowTestChat(true)}
+            disabled={!hasAnyStageCompleted}
+          >
+            <Play className="h-4 w-4 mr-2" />
+            Try It
+          </Button>
+          {!deployment || deployment.status === "retired" ? (
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={onDeploy}
+              disabled={isDeploying || !hasAnyStageCompleted}
+            >
+              {isDeploying ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Rocket className="h-4 w-4 mr-2" />
+              )}
+              Deploy
+            </Button>
+          ) : deployment.status === "active" ? (
+            <>
+              <Button variant="outline" className="flex-1" onClick={onPause}>
+                <Pause className="h-4 w-4 mr-2" />
+                Pause
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={onDeploy}
+                disabled={isDeploying}
+              >
+                {isDeploying ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Redeploy
+              </Button>
+            </>
+          ) : deployment.status === "paused" ? (
+            <Button variant="outline" className="flex-1" onClick={onResume}>
+              <Play className="h-4 w-4 mr-2" />
+              Resume
+            </Button>
+          ) : null}
+          <Button
+            className="flex-1"
+            onClick={onExport}
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            Export
+          </Button>
+        </div>
       </div>
     </div>
   );

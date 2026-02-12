@@ -50,6 +50,7 @@ export default async function Home() {
                 description={agent.description}
                 status={agent.status}
                 createdAt={agent.createdAt.toISOString()}
+                slug={agent.slug}
               />
             ))}
           </div>

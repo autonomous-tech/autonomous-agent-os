@@ -68,6 +68,11 @@ export function TriggersSection({
       {triggers.map((trigger, i) => (
         <TriggerRow key={i} trigger={trigger} />
       ))}
+      <p className="text-[10px] text-muted-foreground/50 mt-2">
+        These define when the agent should activate. The exported config
+        describes the triggers — your deployment platform handles the actual
+        scheduling and event wiring.
+      </p>
     </div>
   );
 }

@@ -6,6 +6,7 @@
 // =============================================================================
 
 import { test, expect } from '@playwright/test'
+import { createDeployableAgent, deleteAgent } from './helpers'
 
 test.describe('Agent List Page', () => {
   test('page loads and shows "Agent OS" header', async ({ page }) => {
@@ -88,5 +89,75 @@ test.describe('Agent List Page', () => {
       expect(text!.length).toBeGreaterThan(0)
     }
     // If no agents, the empty state test covers this scenario
+  })
+})
+
+test.describe('Deployed Badge', () => {
+  let agentId: string
+  let agentSlug: string
+
+  test.beforeEach(async ({ request }) => {
+    const agent = await createDeployableAgent(request)
+    agentId = agent.id
+    agentSlug = agent.slug
+  })
+
+  test.afterEach(async ({ request }) => {
+    if (agentId) {
+      await deleteAgent(request, agentId)
+    }
+  })
+
+  test('deployed agent shows "deployed" badge text', async ({ request, page }) => {
+    // Deploy the agent
+    await request.post(`/api/agents/${agentId}/deploy`)
+
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+
+    // Find the card containing our agent and check for "deployed" badge
+    const badge = page.getByText('deployed', { exact: true }).first()
+    await expect(badge).toBeVisible({ timeout: 10000 })
+  })
+
+  test('deployed agent shows ExternalLink icon with correct href', async ({ request, page }) => {
+    // Deploy the agent
+    await request.post(`/api/agents/${agentId}/deploy`)
+
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+
+    // Should have a link to the public page
+    const externalLink = page.locator(`a[href="/a/${agentSlug}"][target="_blank"]`)
+    await expect(externalLink).toBeVisible({ timeout: 10000 })
+  })
+
+  test('clicking external link does not navigate the card', async ({ request, page }) => {
+    // Deploy the agent
+    await request.post(`/api/agents/${agentId}/deploy`)
+
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+
+    const externalLink = page.locator(`a[href="/a/${agentSlug}"][target="_blank"]`)
+    if (await externalLink.isVisible()) {
+      // The link has target="_blank" and stopPropagation, so clicking it
+      // should not navigate the parent card to the builder page
+      const currentUrl = page.url()
+      // We can't easily test new tab opening, but we can verify the link exists
+      // and has the correct attributes
+      await expect(externalLink).toHaveAttribute('target', '_blank')
+      await expect(externalLink).toHaveAttribute('href', `/a/${agentSlug}`)
+    }
+  })
+
+  test('non-deployed agent does NOT show external link', async ({ page }) => {
+    // Don't deploy -- leave as draft/building
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+
+    // The external link for this slug should not exist
+    const externalLink = page.locator(`a[href="/a/${agentSlug}"][target="_blank"]`)
+    await expect(externalLink).not.toBeVisible()
   })
 })

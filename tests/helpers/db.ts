@@ -38,6 +38,22 @@ export function getMockedPrisma() {
       findFirst: MockedFunction
       create: MockedFunction
     }
+    deployment: {
+      findMany: MockedFunction
+      findUnique: MockedFunction
+      findFirst: MockedFunction
+      create: MockedFunction
+      update: MockedFunction
+      delete: MockedFunction
+    }
+    chatSession: {
+      findMany: MockedFunction
+      findUnique: MockedFunction
+      findFirst: MockedFunction
+      create: MockedFunction
+      update: MockedFunction
+      delete: MockedFunction
+    }
   }
 }
 
@@ -102,6 +118,16 @@ export function cleanupDb() {
     ;(fn as MockedFunction).mockReset()
   })
 
+  // Reset Deployment mocks
+  Object.values(mocked.deployment).forEach((fn) => {
+    ;(fn as MockedFunction).mockReset()
+  })
+
+  // Reset ChatSession mocks
+  Object.values(mocked.chatSession).forEach((fn) => {
+    ;(fn as MockedFunction).mockReset()
+  })
+
   // Re-set default resolved values
   mocked.agentProject.findMany.mockResolvedValue([])
   mocked.agentProject.findUnique.mockResolvedValue(null)
@@ -114,6 +140,18 @@ export function cleanupDb() {
   mocked.agentTemplate.findUnique.mockResolvedValue(null)
   mocked.agentTemplate.findFirst.mockResolvedValue(null)
   mocked.agentTemplate.create.mockResolvedValue(null)
+  mocked.deployment.findMany.mockResolvedValue([])
+  mocked.deployment.findUnique.mockResolvedValue(null)
+  mocked.deployment.findFirst.mockResolvedValue(null)
+  mocked.deployment.create.mockResolvedValue(null)
+  mocked.deployment.update.mockResolvedValue(null)
+  mocked.deployment.delete.mockResolvedValue(null)
+  mocked.chatSession.findMany.mockResolvedValue([])
+  mocked.chatSession.findUnique.mockResolvedValue(null)
+  mocked.chatSession.findFirst.mockResolvedValue(null)
+  mocked.chatSession.create.mockResolvedValue(null)
+  mocked.chatSession.update.mockResolvedValue(null)
+  mocked.chatSession.delete.mockResolvedValue(null)
 }
 
 // ---------------------------------------------------------------------------

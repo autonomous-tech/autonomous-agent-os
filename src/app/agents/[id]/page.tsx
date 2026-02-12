@@ -43,6 +43,8 @@ export default function BuilderPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [deployment, setDeployment] = useState<{ id: string; status: string; version: number; createdAt: string } | null>(null);
+  const [isDeploying, setIsDeploying] = useState(false);
 
   // Fetch agent data on mount
   useEffect(() => {
@@ -61,6 +63,17 @@ export default function BuilderPage() {
         setConfig(data.config || {});
         setStages(data.stages || defaultStageData());
         setConversations(data.conversations || defaultConversations());
+
+        // Fetch deployment status
+        try {
+          const deployRes = await fetch(`/api/agents/${id}/deploy`);
+          if (deployRes.ok) {
+            const deployData = await deployRes.json();
+            setDeployment(deployData.deployment);
+          }
+        } catch {
+          // Deployment fetch is non-critical
+        }
 
         // Set initial stage based on first incomplete stage
         const firstIncomplete = STAGES.find(
@@ -161,6 +174,51 @@ export default function BuilderPage() {
     },
     []
   );
+
+  const handleDeploy = useCallback(async () => {
+    if (!agent) return;
+    setIsDeploying(true);
+    await save();
+    try {
+      const res = await fetch(`/api/agents/${id}/deploy`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDeployment(data.deployment);
+      }
+    } catch (error) {
+      console.error("Deploy error:", error);
+    } finally {
+      setIsDeploying(false);
+    }
+  }, [agent, id, save]);
+
+  const handlePause = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/agents/${id}/deploy`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setDeployment((prev) => prev ? { ...prev, status: "paused" } : null);
+      }
+    } catch (error) {
+      console.error("Pause error:", error);
+    }
+  }, [id]);
+
+  const handleResume = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/agents/${id}/deploy`, {
+        method: "PATCH",
+      });
+      if (res.ok) {
+        setDeployment((prev) => prev ? { ...prev, status: "active" } : null);
+      }
+    } catch (error) {
+      console.error("Resume error:", error);
+    }
+  }, [id]);
 
   // Handle export
   const handleExport = useCallback(async () => {
@@ -313,6 +371,12 @@ export default function BuilderPage() {
               isExporting={isExporting}
               onStageSelect={setCurrentStage}
               onConfigUpdate={handleDirectConfigUpdate}
+              deployment={deployment}
+              agentSlug={agent.slug}
+              onDeploy={handleDeploy}
+              onPause={handlePause}
+              onResume={handleResume}
+              isDeploying={isDeploying}
             />
           </div>
         </div>

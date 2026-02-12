@@ -53,7 +53,7 @@ export async function PATCH(
 
     // Build update data -- only allow safe fields
     const ALLOWED_FIELDS = ["name", "description", "config", "stages", "conversations"] as const;
-    const VALID_STATUSES = ["draft", "building", "exported"];
+    const VALID_STATUSES = ["draft", "building", "exported", "deployed"];
     const updateData: Record<string, unknown> = {};
 
     if (body.name !== undefined) {

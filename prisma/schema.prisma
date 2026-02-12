@@ -20,6 +20,8 @@ model AgentProject {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   exportedAt     DateTime?
+
+  deployments    Deployment[]
 }
 
 model AgentTemplate {
@@ -29,4 +31,38 @@ model AgentTemplate {
   category    String
   config      String
   stages      String
+}
+
+model Deployment {
+  id            String        @id @default(cuid())
+  agentId       String
+  version       Int           @default(1)
+  config        String        // Frozen AgentConfig snapshot (JSON string)
+  systemPrompt  String        // Pre-built runtime system prompt
+  status        String        @default("active") // "active" | "paused" | "retired"
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  agent         AgentProject  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  sessions      ChatSession[]
+
+  @@index([agentId])
+}
+
+model ChatSession {
+  id             String      @id @default(cuid())
+  deploymentId   String
+  token          String      @unique
+  messages       String      @default("[]")  // JSON array of RuntimeMessage[]
+  turnCount      Int         @default(0)
+  failedAttempts Int         @default(0)
+  status         String      @default("active") // "active" | "ended" | "escalated"
+  metadata       String      @default("{}")
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  deployment     Deployment  @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+
+  @@index([deploymentId])
+  @@index([token])
 }
