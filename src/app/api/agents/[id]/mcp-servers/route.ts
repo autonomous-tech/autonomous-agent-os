@@ -1,42 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-
-const VALID_TRANSPORTS = ["stdio", "sse", "http"] as const;
-const MAX_NAME_LENGTH = 100;
-
-/** JSON fields stored as strings in the database. */
-const JSON_FIELDS = [
-  "args",
-  "env",
-  "allowedTools",
-  "blockedTools",
-  "sandboxConfig",
-] as const;
-
-/** Parse all JSON string fields on an McpServerConfig row into real values. */
-function parseServerRow(row: Record<string, unknown>): Record<string, unknown> {
-  const parsed = { ...row };
-  for (const field of JSON_FIELDS) {
-    if (typeof parsed[field] === "string") {
-      try {
-        parsed[field] = JSON.parse(parsed[field] as string);
-      } catch {
-        // leave as-is if unparseable
-      }
-    }
-  }
-  return parsed;
-}
-
-/** Basic URL format validation (must be http or https). */
-function isValidUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
+import {
+  VALID_TRANSPORTS,
+  MAX_NAME_LENGTH,
+  parseServerRow,
+  validateMcpFields,
+  validateTransportFields,
+} from "@/lib/mcp-helpers";
 
 // GET /api/agents/[id]/mcp-servers — List all MCP servers for an agent
 export async function GET(
@@ -103,9 +73,7 @@ export async function POST(
       body.name.length > MAX_NAME_LENGTH
     ) {
       return NextResponse.json(
-        {
-          error: `name is required and must be a string of 1–${MAX_NAME_LENGTH} characters`,
-        },
+        { error: `name is required and must be a string of 1–${MAX_NAME_LENGTH} characters` },
         { status: 400 }
       );
     }
@@ -116,81 +84,19 @@ export async function POST(
       !VALID_TRANSPORTS.includes(body.transport as (typeof VALID_TRANSPORTS)[number])
     ) {
       return NextResponse.json(
-        {
-          error: `transport is required and must be one of: ${VALID_TRANSPORTS.join(", ")}`,
-        },
+        { error: `transport is required and must be one of: ${VALID_TRANSPORTS.join(", ")}` },
         { status: 400 }
       );
     }
     const transport = body.transport as (typeof VALID_TRANSPORTS)[number];
 
     // ── Transport-specific validation ───────────────────────────────
-    if (transport === "stdio") {
-      if (typeof body.command !== "string" || body.command.trim().length === 0) {
-        return NextResponse.json(
-          { error: "command is required for stdio transport" },
-          { status: 400 }
-        );
-      }
-    } else {
-      // sse or http
-      if (typeof body.url !== "string" || !isValidUrl(body.url)) {
-        return NextResponse.json(
-          { error: "A valid http/https url is required for sse and http transports" },
-          { status: 400 }
-        );
-      }
-    }
+    const transportError = validateTransportFields(transport, body.command, body.url);
+    if (transportError) return transportError;
 
     // ── Optional field validation ───────────────────────────────────
-    if (body.args !== undefined) {
-      if (!Array.isArray(body.args)) {
-        return NextResponse.json(
-          { error: "args must be an array" },
-          { status: 400 }
-        );
-      }
-    }
-    if (body.env !== undefined) {
-      if (
-        typeof body.env !== "object" ||
-        body.env === null ||
-        Array.isArray(body.env)
-      ) {
-        return NextResponse.json(
-          { error: "env must be an object" },
-          { status: 400 }
-        );
-      }
-    }
-    if (body.allowedTools !== undefined) {
-      if (!Array.isArray(body.allowedTools)) {
-        return NextResponse.json(
-          { error: "allowedTools must be an array" },
-          { status: 400 }
-        );
-      }
-    }
-    if (body.blockedTools !== undefined) {
-      if (!Array.isArray(body.blockedTools)) {
-        return NextResponse.json(
-          { error: "blockedTools must be an array" },
-          { status: 400 }
-        );
-      }
-    }
-    if (body.sandboxConfig !== undefined) {
-      if (
-        typeof body.sandboxConfig !== "object" ||
-        body.sandboxConfig === null ||
-        Array.isArray(body.sandboxConfig)
-      ) {
-        return NextResponse.json(
-          { error: "sandboxConfig must be an object" },
-          { status: 400 }
-        );
-      }
-    }
+    const fieldError = validateMcpFields(body);
+    if (fieldError) return fieldError;
 
     // ── Duplicate check ─────────────────────────────────────────────
     const existing = await prisma.mcpServerConfig.findUnique({

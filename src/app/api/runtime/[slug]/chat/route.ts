@@ -44,8 +44,11 @@ export async function POST(
       if (deployment.mcpConfig) {
         mcpServers = JSON.parse(deployment.mcpConfig);
       }
-    } catch {
-      // If mcpConfig is malformed, proceed without MCP servers
+    } catch (err) {
+      console.error(
+        `[runtime/chat] Deployment ${deployment.id}: Failed to parse mcpConfig. Agent will operate without tools.`,
+        err instanceof Error ? err.message : err
+      );
       mcpServers = [];
     }
 

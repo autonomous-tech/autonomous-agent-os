@@ -13,7 +13,6 @@ import type {
   ExecutableTool,
   ToolCall,
   ToolResult,
-  SandboxConfig,
 } from "@/lib/runtime/tools.types";
 
 // ── Anthropic SDK tool shape (subset we need) ──────────────────────
@@ -40,7 +39,6 @@ const DEFAULT_MAX_OUTPUT_SIZE = 102_400;
  * Supports patterns like "read*", "*write", "fs_*_file", and exact matches.
  */
 export function matchesGlob(pattern: string, name: string): boolean {
-  // Escape regex special characters except *, then replace * with .*
   const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
   const regexStr = "^" + escaped.replace(/\*/g, ".*") + "$";
   return new RegExp(regexStr).test(name);
@@ -107,6 +105,25 @@ function createTransport(
   }
 }
 
+// ── Tool filtering ───────────────────────────────────────────────
+
+/** Check if a tool name passes the server's allowed/blocked glob filters. */
+function isToolPermitted(toolName: string, definition: McpServerDefinition): boolean {
+  const { allowedTools, blockedTools } = definition;
+
+  if (allowedTools?.length) {
+    const allowed = allowedTools.some((pattern) => matchesGlob(pattern, toolName));
+    if (!allowed) return false;
+  }
+
+  if (blockedTools?.length) {
+    const blocked = blockedTools.some((pattern) => matchesGlob(pattern, toolName));
+    if (blocked) return false;
+  }
+
+  return true;
+}
+
 // ── McpClientManager ───────────────────────────────────────────────
 
 interface ConnectedServer {
@@ -140,13 +157,11 @@ export class McpClientManager {
       })
     );
 
-    // Log failures but don't throw
     for (let i = 0; i < results.length; i++) {
       const result = results[i];
       if (result.status === "rejected") {
-        const serverName = activeServers[i].name;
         console.warn(
-          `[McpClientManager] Failed to connect to server "${serverName}":`,
+          `[McpClientManager] Failed to connect to server "${activeServers[i].name}":`,
           result.reason instanceof Error
             ? result.reason.message
             : result.reason
@@ -154,7 +169,6 @@ export class McpClientManager {
       }
     }
 
-    // Invalidate tool cache on new connections
     this.toolCache = null;
   }
 
@@ -173,21 +187,7 @@ export class McpClientManager {
         const tools = response.tools ?? [];
 
         for (const tool of tools) {
-          // Apply allowedTools filter: if specified, tool must match at least one pattern
-          if (definition.allowedTools && definition.allowedTools.length > 0) {
-            const allowed = definition.allowedTools.some((pattern) =>
-              matchesGlob(pattern, tool.name)
-            );
-            if (!allowed) continue;
-          }
-
-          // Apply blockedTools filter: if specified, tool must not match any pattern
-          if (definition.blockedTools && definition.blockedTools.length > 0) {
-            const blocked = definition.blockedTools.some((pattern) =>
-              matchesGlob(pattern, tool.name)
-            );
-            if (blocked) continue;
-          }
+          if (!isToolPermitted(tool.name, definition)) continue;
 
           allTools.push({
             name: tool.name,
@@ -216,18 +216,15 @@ export class McpClientManager {
   async toAnthropicTools(): Promise<AnthropicTool[]> {
     const tools = await this.listTools();
 
-    return tools.map((tool) => {
-      const schema = tool.inputSchema as Record<string, unknown>;
-      return {
-        name: `${tool.serverName}__${tool.name}`,
-        description: tool.description,
-        input_schema: {
-          type: "object" as const,
-          properties: (schema.properties as Record<string, unknown>) ?? {},
-          required: (schema.required as string[]) ?? [],
-        },
-      };
-    });
+    return tools.map((tool) => ({
+      name: `${tool.serverName}__${tool.name}`,
+      description: tool.description,
+      input_schema: {
+        type: "object" as const,
+        properties: (tool.inputSchema.properties as Record<string, unknown>) ?? {},
+        required: (tool.inputSchema.required as string[]) ?? [],
+      },
+    }));
   }
 
   /**
@@ -269,45 +266,25 @@ export class McpClientManager {
       };
     }
 
-    const sandbox: SandboxConfig = entry.definition.sandbox ?? {};
+    const sandbox = entry.definition.sandbox ?? {};
     const timeoutMs = sandbox.maxExecutionMs ?? DEFAULT_MAX_EXECUTION_MS;
     const maxOutputSize = sandbox.maxOutputSize ?? DEFAULT_MAX_OUTPUT_SIZE;
 
     try {
-      // Execute with timeout using Promise.race + AbortController
-      const abortController = new AbortController();
-      const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
-
-      const callPromise = entry.client.callTool(
-        { name: toolName, arguments: call.input },
-        undefined,
-        { signal: abortController.signal }
+      const result = await callToolWithTimeout(
+        entry.client,
+        toolName,
+        call.input,
+        timeoutMs
       );
 
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        abortController.signal.addEventListener("abort", () => {
-          reject(new Error(`Tool execution timed out after ${timeoutMs}ms`));
-        });
-      });
-
-      let result: Awaited<typeof callPromise>;
-      try {
-        result = await Promise.race([callPromise, timeoutPromise]);
-      } finally {
-        clearTimeout(timeoutId);
-      }
-
       // Extract text content from the result
-      const contentItems = result.content as Array<{
-        type: string;
-        text?: string;
-      }>;
+      const contentItems = result.content as Array<{ type: string; text?: string }>;
       let output = contentItems
         .filter((item) => item.type === "text" && item.text)
         .map((item) => item.text!)
         .join("\n");
 
-      // Truncate if output exceeds max size
       if (output.length > maxOutputSize) {
         output =
           output.slice(0, maxOutputSize) +
@@ -337,7 +314,7 @@ export class McpClientManager {
    * ensure server processes (especially stdio) are cleaned up.
    */
   async disconnect(): Promise<void> {
-    const closeResults = await Promise.allSettled(
+    const results = await Promise.allSettled(
       Array.from(this.servers.entries()).map(async ([name, { client }]) => {
         try {
           await client.close();
@@ -350,8 +327,9 @@ export class McpClientManager {
       })
     );
 
-    // Log any unexpected settlement failures
-    for (const result of closeResults) {
+    // Log any unexpected settlement failures (should not occur since
+    // the inner try/catch handles all errors, but guard defensively)
+    for (const result of results) {
       if (result.status === "rejected") {
         console.warn(
           "[McpClientManager] Unexpected error during disconnect:",
@@ -372,5 +350,40 @@ export class McpClientManager {
   /** Check if a specific server is connected. */
   isConnected(serverName: string): boolean {
     return this.servers.has(serverName);
+  }
+}
+
+// ── Timeout-aware tool call ──────────────────────────────────────────
+
+/**
+ * Call a tool on an MCP client with a timeout. Uses AbortController to
+ * signal the client, with a Promise.race fallback to ensure we never
+ * wait longer than `timeoutMs`.
+ */
+async function callToolWithTimeout(
+  client: Client,
+  toolName: string,
+  input: Record<string, unknown>,
+  timeoutMs: number
+): Promise<Awaited<ReturnType<Client["callTool"]>>> {
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
+
+  const callPromise = client.callTool(
+    { name: toolName, arguments: input },
+    undefined,
+    { signal: abortController.signal }
+  );
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    abortController.signal.addEventListener("abort", () => {
+      reject(new Error(`Tool execution timed out after ${timeoutMs}ms`));
+    });
+  });
+
+  try {
+    return await Promise.race([callPromise, timeoutPromise]);
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

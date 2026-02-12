@@ -1,56 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-
-const VALID_TRANSPORTS = ["stdio", "sse", "http"] as const;
-const VALID_STATUSES = ["active", "inactive"] as const;
-const MAX_NAME_LENGTH = 100;
-
-const ALLOWED_FIELDS = new Set([
-  "name",
-  "transport",
-  "command",
-  "args",
-  "url",
-  "env",
-  "allowedTools",
-  "blockedTools",
-  "sandboxConfig",
-  "status",
-]);
-
-/** JSON fields stored as strings in the database. */
-const JSON_FIELDS = [
-  "args",
-  "env",
-  "allowedTools",
-  "blockedTools",
-  "sandboxConfig",
-] as const;
-
-/** Parse all JSON string fields on an McpServerConfig row into real values. */
-function parseServerRow(row: Record<string, unknown>): Record<string, unknown> {
-  const parsed = { ...row };
-  for (const field of JSON_FIELDS) {
-    if (typeof parsed[field] === "string") {
-      try {
-        parsed[field] = JSON.parse(parsed[field] as string);
-      } catch {
-        // leave as-is if unparseable
-      }
-    }
-  }
-  return parsed;
-}
-
-/** Basic URL format validation (must be http or https). */
-function isValidUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
+import {
+  VALID_TRANSPORTS,
+  VALID_STATUSES,
+  MAX_NAME_LENGTH,
+  ALLOWED_PATCH_FIELDS,
+  parseServerRow,
+  isValidUrl,
+  validateMcpFields,
+} from "@/lib/mcp-helpers";
 
 // PATCH /api/agents/[id]/mcp-servers/[serverId] — Update an MCP server config
 export async function PATCH(
@@ -88,8 +46,7 @@ export async function PATCH(
     }
 
     // Reject unknown fields
-    const bodyKeys = Object.keys(body);
-    const rejected = bodyKeys.filter((k) => !ALLOWED_FIELDS.has(k));
+    const rejected = Object.keys(body).filter((k) => !ALLOWED_PATCH_FIELDS.has(k));
     if (rejected.length > 0) {
       return NextResponse.json(
         { error: `Fields not allowed: ${rejected.join(", ")}` },
@@ -113,9 +70,7 @@ export async function PATCH(
       }
       // Check for duplicate name (excluding self)
       const duplicate = await prisma.mcpServerConfig.findUnique({
-        where: {
-          agentId_name: { agentId: id, name: body.name as string },
-        },
+        where: { agentId_name: { agentId: id, name: body.name as string } },
       });
       if (duplicate && duplicate.id !== serverId) {
         return NextResponse.json(
@@ -161,63 +116,15 @@ export async function PATCH(
       updateData.url = body.url;
     }
 
-    if (body.args !== undefined) {
-      if (!Array.isArray(body.args)) {
-        return NextResponse.json(
-          { error: "args must be an array" },
-          { status: 400 }
-        );
-      }
-      updateData.args = JSON.stringify(body.args);
-    }
+    // Validate collection fields (args, env, allowedTools, blockedTools, sandboxConfig)
+    const fieldError = validateMcpFields(body);
+    if (fieldError) return fieldError;
 
-    if (body.env !== undefined) {
-      if (
-        typeof body.env !== "object" ||
-        body.env === null ||
-        Array.isArray(body.env)
-      ) {
-        return NextResponse.json(
-          { error: "env must be an object" },
-          { status: 400 }
-        );
-      }
-      updateData.env = JSON.stringify(body.env);
-    }
-
-    if (body.allowedTools !== undefined) {
-      if (!Array.isArray(body.allowedTools)) {
-        return NextResponse.json(
-          { error: "allowedTools must be an array" },
-          { status: 400 }
-        );
-      }
-      updateData.allowedTools = JSON.stringify(body.allowedTools);
-    }
-
-    if (body.blockedTools !== undefined) {
-      if (!Array.isArray(body.blockedTools)) {
-        return NextResponse.json(
-          { error: "blockedTools must be an array" },
-          { status: 400 }
-        );
-      }
-      updateData.blockedTools = JSON.stringify(body.blockedTools);
-    }
-
-    if (body.sandboxConfig !== undefined) {
-      if (
-        typeof body.sandboxConfig !== "object" ||
-        body.sandboxConfig === null ||
-        Array.isArray(body.sandboxConfig)
-      ) {
-        return NextResponse.json(
-          { error: "sandboxConfig must be an object" },
-          { status: 400 }
-        );
-      }
-      updateData.sandboxConfig = JSON.stringify(body.sandboxConfig);
-    }
+    if (body.args !== undefined) updateData.args = JSON.stringify(body.args);
+    if (body.env !== undefined) updateData.env = JSON.stringify(body.env);
+    if (body.allowedTools !== undefined) updateData.allowedTools = JSON.stringify(body.allowedTools);
+    if (body.blockedTools !== undefined) updateData.blockedTools = JSON.stringify(body.blockedTools);
+    if (body.sandboxConfig !== undefined) updateData.sandboxConfig = JSON.stringify(body.sandboxConfig);
 
     if (body.status !== undefined) {
       if (
@@ -233,7 +140,6 @@ export async function PATCH(
     }
 
     // ── Cross-field transport validation ────────────────────────────
-    // Determine the effective transport after update
     const effectiveTransport =
       (updateData.transport as string) ?? server.transport;
     const effectiveCommand =
@@ -248,7 +154,6 @@ export async function PATCH(
         );
       }
     } else {
-      // sse or http
       if (
         !effectiveUrl ||
         typeof effectiveUrl !== "string" ||

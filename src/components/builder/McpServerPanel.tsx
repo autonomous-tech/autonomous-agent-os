@@ -63,28 +63,28 @@ const PRESETS: Record<string, Preset> = {
     name: "filesystem",
     transport: "stdio",
     command: "npx",
-    args: ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/dir"],
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp/agent-workspace"],
   },
   "jira-cloud": {
     label: "Jira Cloud",
     name: "jira-cloud",
     transport: "stdio",
     command: "npx",
-    args: ["-y", "@modelcontextprotocol/server-jira"],
+    args: ["-y", "@anthropic/mcp-server-jira"],
   },
   git: {
     label: "Git",
     name: "git",
     transport: "stdio",
     command: "npx",
-    args: ["-y", "@modelcontextprotocol/server-git"],
+    args: ["-y", "@anthropic/mcp-server-git"],
   },
   browser: {
     label: "Browser",
     name: "browser",
     transport: "stdio",
     command: "npx",
-    args: ["-y", "@modelcontextprotocol/server-puppeteer"],
+    args: ["-y", "@anthropic/mcp-server-puppeteer"],
   },
   custom: {
     label: "Custom",
@@ -219,7 +219,7 @@ export function McpServerPanel({
       });
       if (!res.ok) throw new Error("Failed to add server");
       const data = await res.json();
-      onServersChange([...servers, data.server]);
+      onServersChange([...servers, data]);
       setShowAddDialog(false);
       setForm(INITIAL_FORM);
     } catch (err) {
@@ -273,7 +273,7 @@ export function McpServerPanel({
       const data = await res.json();
       onServersChange(
         servers.map((s) =>
-          s.id === server.id ? { ...s, toolCount: data.toolCount } : s
+          s.id === server.id ? { ...s, toolCount: data.tools?.length } : s
         )
       );
     } catch (err) {

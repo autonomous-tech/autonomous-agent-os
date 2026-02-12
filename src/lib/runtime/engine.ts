@@ -1,16 +1,15 @@
 import { chat, chatWithTools } from "@/lib/claude";
-import type { MessageParam } from "@/lib/claude";
+import type { MessageParam, Tool } from "@/lib/claude";
 import type { AgentConfig } from "@/lib/types";
-import type { RuntimeMessage, ProcessMessageResult } from "./types";
+import type { RuntimeMessage, ProcessMessageResult, SessionUpdates } from "./types";
 import type { McpServerDefinition, ToolCall, ToolUseRecord } from "./tools.types";
 import { checkPreMessage } from "./guardrails";
 import { McpClientManager } from "./mcp-client";
 
-type ContentBlock = { type: string; text?: string; id?: string; name?: string; input?: unknown };
-
 // ── Constants ────────────────────────────────────────────────────────
 
 const DEFAULT_MAX_TOOL_ROUNDTRIPS = 10;
+const MAX_HISTORY_MESSAGES = 40;
 
 // ── Main entry point ─────────────────────────────────────────────────
 
@@ -44,13 +43,12 @@ export async function processMessage(
       metadata: { blocked: true, action: preCheck.action },
     };
 
+    const status: SessionUpdates["status"] =
+      preCheck.action === "end_session" ? "ended" : sessionStatus as SessionUpdates["status"];
+
     return {
       response: blockedResponse,
-      sessionUpdates: {
-        turnCount,
-        failedAttempts,
-        status: preCheck.action === "end_session" ? "ended" : sessionStatus as "active" | "ended" | "escalated",
-      },
+      sessionUpdates: { turnCount, failedAttempts, status },
       guardrailNotice: preCheck.reason,
     };
   }
@@ -60,12 +58,10 @@ export async function processMessage(
   const maxTokens = maxResponseLength ? Math.min(maxResponseLength, 4096) : undefined;
 
   // 3. Route to the appropriate path
-  const hasMcpServers = mcpServers && mcpServers.length > 0;
-
   let responseText: string;
   let toolExecutions: ToolUseRecord[] | undefined;
 
-  if (hasMcpServers) {
+  if (mcpServers?.length) {
     const result = await processWithTools(
       systemPrompt,
       history,
@@ -76,17 +72,12 @@ export async function processMessage(
     responseText = result.responseText;
     toolExecutions = result.toolExecutions.length > 0 ? result.toolExecutions : undefined;
   } else {
-    // Existing chat() path — unchanged
-    const cappedHistory = history.slice(-40);
-    const claudeMessages: Array<{ role: "user" | "assistant"; content: string }> = [
-      ...cappedHistory.map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
-      { role: "user" as const, content: userMessage },
-    ];
-
-    responseText = await chat(systemPrompt, claudeMessages, maxTokens ? { maxTokens } : undefined);
+    const messages = buildMessages(history, userMessage);
+    responseText = await chat(
+      systemPrompt,
+      messages as Array<{ role: "user" | "assistant"; content: string }>,
+      maxTokens ? { maxTokens } : undefined
+    );
   }
 
   // 4. Build response message
@@ -101,18 +92,62 @@ export async function processMessage(
   // 5. Determine new session state
   const newTurnCount = turnCount + 1;
   const maxTurns = guardrails?.resource_limits?.max_turns_per_session ?? 50;
-  const newStatus = newTurnCount >= maxTurns ? "ended" : "active";
+  const newStatus: SessionUpdates["status"] = newTurnCount >= maxTurns ? "ended" : "active";
 
   return {
     response,
     sessionUpdates: {
       turnCount: newTurnCount,
       failedAttempts,
-      status: newStatus as "active" | "ended" | "escalated",
+      status: newStatus,
     },
     guardrailNotice: newStatus === "ended" ? `Session ended: maximum ${maxTurns} turns reached.` : undefined,
     ...(toolExecutions ? { toolExecutions } : {}),
   };
+}
+
+// ── Shared helpers ───────────────────────────────────────────────────
+
+/** Build a capped messages array from history plus a new user message. */
+function buildMessages(
+  history: RuntimeMessage[],
+  userMessage: string
+): MessageParam[] {
+  const capped = history.slice(-MAX_HISTORY_MESSAGES);
+  return [
+    ...capped.map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    })),
+    { role: "user" as const, content: userMessage },
+  ];
+}
+
+/** Extract concatenated text from Anthropic content blocks. */
+function extractText(content: Array<{ type: string; text?: string }>): string {
+  return content
+    .filter((block) => block.type === "text" && typeof block.text === "string")
+    .map((block) => block.text!)
+    .join("");
+}
+
+/**
+ * Parse a prefixed tool name "serverName__toolName" into its components.
+ * If no prefix separator is found, returns the full name as both.
+ */
+function parseToolName(prefixedName: string): { serverName: string; toolName: string } {
+  const separatorIndex = prefixedName.indexOf("__");
+  if (separatorIndex === -1) {
+    return { serverName: prefixedName, toolName: prefixedName };
+  }
+  return {
+    serverName: prefixedName.slice(0, separatorIndex),
+    toolName: prefixedName.slice(separatorIndex + 2),
+  };
+}
+
+function generateId(): string {
+  return `msg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 // ── Agentic tool-use loop ────────────────────────────────────────────
@@ -141,148 +176,96 @@ async function processWithTools(
   const allToolExecutions: ToolUseRecord[] = [];
 
   try {
-    // Connect to all configured MCP servers
     await mcpClient.connect(mcpServers);
 
-    // Get Anthropic-formatted tool definitions
     const tools = await mcpClient.toAnthropicTools();
-
-    // Build the initial messages array from history, using MessageParam format
-    // so we can later append tool_use and tool_result content blocks.
-    const cappedHistory = history.slice(-40);
-    const messages: MessageParam[] = [
-      ...cappedHistory.map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
-      { role: "user" as const, content: userMessage },
-    ];
+    const messages: MessageParam[] = buildMessages(history, userMessage);
+    const effectiveMaxTokens = maxTokens ?? 4096;
 
     // Agentic loop
     for (let iteration = 0; iteration < DEFAULT_MAX_TOOL_ROUNDTRIPS; iteration++) {
       const response = await chatWithTools(systemPrompt, messages, {
-        tools: tools as import("@anthropic-ai/sdk/resources/messages").Tool[],
-        maxTokens: maxTokens ?? 4096,
+        tools: tools as Tool[],
+        maxTokens: effectiveMaxTokens,
       });
 
-      // If Claude finished with a text response, extract it and return
-      if (response.stop_reason === "end_turn") {
-        const text = extractTextFromContent(response.content as ContentBlock[]);
-        return { responseText: text, toolExecutions: allToolExecutions };
+      const content = response.content as Array<{
+        type: string;
+        text?: string;
+        id?: string;
+        name?: string;
+        input?: Record<string, unknown>;
+      }>;
+
+      // If Claude finished with a text response or hit max_tokens, extract and return
+      if (response.stop_reason !== "tool_use") {
+        return { responseText: extractText(content), toolExecutions: allToolExecutions };
       }
 
-      // If Claude wants to use tools
-      if (response.stop_reason === "tool_use") {
-        // Append the full assistant message (may contain text + tool_use blocks)
-        messages.push({
-          role: "assistant",
-          content: response.content as MessageParam["content"],
+      // Claude wants to use tools - append the full assistant message
+      messages.push({
+        role: "assistant",
+        content: response.content as MessageParam["content"],
+      });
+
+      // Extract tool_use blocks and execute them
+      const toolUseBlocks = content.filter((block) => block.type === "tool_use");
+
+      const toolResultBlocks: Array<{
+        type: "tool_result";
+        tool_use_id: string;
+        content: string;
+        is_error?: boolean;
+      }> = [];
+
+      for (const block of toolUseBlocks) {
+        const { serverName, toolName } = parseToolName(block.name!);
+        const input = (block.input ?? {}) as Record<string, unknown>;
+
+        const toolCall: ToolCall = {
+          id: block.id!,
+          name: block.name!,
+          input,
+          serverName,
+        };
+
+        const result = await mcpClient.executeTool(toolCall);
+
+        allToolExecutions.push({
+          toolCallId: block.id!,
+          toolName,
+          serverName,
+          input,
+          output: result.output,
+          isError: result.isError,
+          durationMs: result.durationMs,
         });
 
-        // Extract tool_use blocks
-        const toolUseBlocks = (response.content as ContentBlock[]).filter(
-          (block): block is ContentBlock & { type: "tool_use"; id: string; name: string; input: Record<string, unknown> } =>
-            block.type === "tool_use"
-        );
-
-        // Execute each tool call and collect results
-        const toolResultBlocks: Array<{
-          type: "tool_result";
-          tool_use_id: string;
-          content: string;
-          is_error?: boolean;
-        }> = [];
-
-        for (const block of toolUseBlocks) {
-          // Parse "serverName__toolName" to resolve the server
-          const { serverName, toolName } = parseToolName(block.name);
-
-          const toolCall: ToolCall = {
-            id: block.id,
-            name: block.name,
-            input: block.input as Record<string, unknown>,
-            serverName,
-          };
-
-          const result = await mcpClient.executeTool(toolCall);
-
-          // Record this tool execution
-          allToolExecutions.push({
-            toolCallId: block.id,
-            toolName,
-            serverName,
-            input: block.input as Record<string, unknown>,
-            output: result.output,
-            isError: result.isError,
-            durationMs: result.durationMs,
-          });
-
-          // Build the tool_result content block
-          toolResultBlocks.push({
-            type: "tool_result",
-            tool_use_id: block.id,
-            content: result.output,
-            ...(result.isError ? { is_error: true } : {}),
-          });
-        }
-
-        // Append user message containing all tool results
-        messages.push({
-          role: "user",
-          content: toolResultBlocks as unknown as MessageParam["content"],
+        toolResultBlocks.push({
+          type: "tool_result",
+          tool_use_id: block.id!,
+          content: result.output,
+          ...(result.isError ? { is_error: true } : {}),
         });
-
-        // Continue to next iteration of the loop
-        continue;
       }
 
-      // For any other stop_reason (e.g. max_tokens), extract whatever text we have
-      const text = extractTextFromContent(response.content as ContentBlock[]);
-      return { responseText: text, toolExecutions: allToolExecutions };
+      // Append user message containing all tool results
+      messages.push({
+        role: "user",
+        content: toolResultBlocks as unknown as MessageParam["content"],
+      });
     }
 
-    // Max iterations reached — make one final call with NO tools to force a text response
+    // Max iterations reached -- make one final call with NO tools to force a text response
     const finalResponse = await chatWithTools(systemPrompt, messages, {
-      maxTokens: maxTokens ?? 4096,
-      // No tools provided — forces Claude to produce text
+      maxTokens: effectiveMaxTokens,
     });
 
-    const text = extractTextFromContent(finalResponse.content as ContentBlock[]);
+    const text = extractText(
+      finalResponse.content as Array<{ type: string; text?: string }>
+    );
     return { responseText: text, toolExecutions: allToolExecutions };
   } finally {
     await mcpClient.disconnect();
   }
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────
-
-/**
- * Extract concatenated text from Anthropic content blocks.
- */
-function extractTextFromContent(
-  content: ContentBlock[]
-): string {
-  return content
-    .filter((block) => block.type === "text" && typeof block.text === "string")
-    .map((block) => block.text as string)
-    .join("");
-}
-
-/**
- * Parse a prefixed tool name "serverName__toolName" into its components.
- * If no prefix separator is found, returns the full name as both.
- */
-function parseToolName(prefixedName: string): { serverName: string; toolName: string } {
-  const separatorIndex = prefixedName.indexOf("__");
-  if (separatorIndex === -1) {
-    return { serverName: prefixedName, toolName: prefixedName };
-  }
-  return {
-    serverName: prefixedName.slice(0, separatorIndex),
-    toolName: prefixedName.slice(separatorIndex + 2),
-  };
-}
-
-function generateId(): string {
-  return `msg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
