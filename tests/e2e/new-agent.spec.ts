@@ -1,19 +1,16 @@
 // =============================================================================
-// Agent OS -- E2E Tests: New Agent Page
+// Agent OS -- E2E Tests: New Agent Page (Multi-step creation flow)
 // =============================================================================
-// Tests for the agent creation experience (description input + templates).
-// Spec reference: Section 3 -- Templates
+// Tests for the agent creation experience: archetype selection, audience,
+// naming, review & create, plus template path.
 // =============================================================================
 
 import { test, expect } from '@playwright/test'
 
 test.describe('New Agent Page', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to the new agent page
-    // This could be /new, /agents/new, or triggered by the "New Agent" button
     await page.goto('/')
 
-    // Click the New Agent button to get to the creation flow
     const newAgentButton = page
       .getByRole('button', { name: /new agent/i })
       .or(page.getByRole('link', { name: /new agent/i }))
@@ -24,116 +21,193 @@ test.describe('New Agent Page', () => {
     }
   })
 
-  test('shows text input for agent description', async ({ page }) => {
-    // There should be a text input or textarea for entering the agent description
-    const descInput = page
-      .getByPlaceholder(/describe|agent you want|one sentence/i)
-      .or(page.getByRole('textbox').first())
-    await expect(descInput).toBeVisible()
+  // ── Step 1: Archetype selection ──────────────────────────────────
+
+  test('shows archetype cards on step 1', async ({ page }) => {
+    // Should show the 6 archetypes: Support, Research, Sales, Operations, Creative, Custom
+    const support = page.getByText('Support').first()
+    const research = page.getByText('Research').first()
+    const custom = page.getByText('Custom').first()
+
+    await expect(support).toBeVisible()
+    await expect(research).toBeVisible()
+    await expect(custom).toBeVisible()
   })
 
-  test('shows 3 template cards', async ({ page }) => {
-    // The spec defines 3 templates: Customer Support, Research Assistant, Sales Support
+  test('shows step 1 heading', async ({ page }) => {
+    const heading = page.getByText(/what kind of agent/i)
+    await expect(heading).toBeVisible()
+  })
+
+  test('shows 3 template cards below archetypes', async ({ page }) => {
     const customerSupport = page.getByText(/customer support/i).first()
-    const research = page.getByText(/research assistant/i).first()
+    const researchAssistant = page.getByText(/research assistant/i).first()
     const salesSupport = page.getByText(/sales support/i).first()
 
-    // At least the template names should be visible
     const hasCustomerSupport = await customerSupport.isVisible().catch(() => false)
-    const hasResearch = await research.isVisible().catch(() => false)
+    const hasResearch = await researchAssistant.isVisible().catch(() => false)
     const hasSalesSupport = await salesSupport.isVisible().catch(() => false)
 
-    // All 3 templates should be visible
     expect(hasCustomerSupport).toBe(true)
     expect(hasResearch).toBe(true)
     expect(hasSalesSupport).toBe(true)
   })
 
   test('each template shows name and description', async ({ page }) => {
-    // Customer Support template
     const supportText = page.getByText(/customer support/i).first()
     if (await supportText.isVisible()) {
-      // The description should be nearby
-      const supportDesc = page
-        .getByText(/faq|issues|escalat/i)
-        .first()
+      const supportDesc = page.getByText(/faq|issues|escalat/i).first()
       const hasDesc = await supportDesc.isVisible().catch(() => false)
       expect(hasDesc).toBe(true)
     }
-
-    // Research Assistant template
-    const researchText = page.getByText(/research assistant/i).first()
-    if (await researchText.isVisible()) {
-      const researchDesc = page
-        .getByText(/monitor|summar|findings/i)
-        .first()
-      const hasDesc = await researchDesc.isVisible().catch(() => false)
-      expect(hasDesc).toBe(true)
-    }
   })
 
-  test('typing a description and submitting navigates to the builder', async ({
-    page,
-  }) => {
-    const descInput = page
-      .getByPlaceholder(/describe|agent|one sentence/i)
+  test('shows reassurance text on step 1', async ({ page }) => {
+    const reassurance = page.getByText(/starting point/i).first()
+    const hasReassurance = await reassurance.isVisible().catch(() => false)
+    expect(hasReassurance).toBe(true)
+  })
+
+  // ── Step 2: Audience selection ───────────────────────────────────
+
+  test('selecting a non-custom archetype advances to step 2', async ({ page }) => {
+    // Click the Support archetype
+    const supportCard = page.getByText('Support').first()
+    await supportCard.click()
+    await page.waitForTimeout(300)
+
+    // Step 2 should show audience options
+    const heading = page.getByText(/who will use it/i)
+    await expect(heading).toBeVisible()
+  })
+
+  test('step 2 shows 3 audience options', async ({ page }) => {
+    const supportCard = page.getByText('Support').first()
+    await supportCard.click()
+    await page.waitForTimeout(300)
+
+    const justMe = page.getByText(/just me/i).first()
+    const myTeam = page.getByText(/my team/i).first()
+    const anyone = page.getByText(/anyone/i).first()
+
+    await expect(justMe).toBeVisible()
+    await expect(myTeam).toBeVisible()
+    await expect(anyone).toBeVisible()
+  })
+
+  // ── Step 3: Name ────────────────────────────────────────────────
+
+  test('selecting audience advances to step 3 (naming)', async ({ page }) => {
+    // Step 1: select archetype
+    const supportCard = page.getByText('Support').first()
+    await supportCard.click()
+    await page.waitForTimeout(300)
+
+    // Step 2: select audience
+    const myTeam = page.getByText(/my team/i).first()
+    await myTeam.click()
+    await page.waitForTimeout(300)
+
+    // Step 3: should show name input
+    const heading = page.getByText(/give it a name/i)
+    await expect(heading).toBeVisible()
+  })
+
+  test('step 3 shows suggested name pills', async ({ page }) => {
+    const supportCard = page.getByText('Support').first()
+    await supportCard.click()
+    await page.waitForTimeout(300)
+
+    const myTeam = page.getByText(/my team/i).first()
+    await myTeam.click()
+    await page.waitForTimeout(300)
+
+    // Suggested names for Support archetype: Fixie, Helpdesk, Assist
+    const fixie = page.getByText('Fixie').first()
+    const hasFixie = await fixie.isVisible().catch(() => false)
+    expect(hasFixie).toBe(true)
+  })
+
+  test('step 3 name input accepts text', async ({ page }) => {
+    const supportCard = page.getByText('Support').first()
+    await supportCard.click()
+    await page.waitForTimeout(300)
+
+    const myTeam = page.getByText(/my team/i).first()
+    await myTeam.click()
+    await page.waitForTimeout(300)
+
+    const nameInput = page.getByPlaceholder(/fixie|scout|muse/i)
       .or(page.getByRole('textbox').first())
 
-    if (await descInput.isVisible()) {
-      await descInput.fill(
-        'A customer support agent for my SaaS product'
-      )
-
-      // Find and click the submit button
-      const submitButton = page
-        .getByRole('button', { name: /create|start|build|submit|go/i })
-        .first()
-
-      if (await submitButton.isVisible()) {
-        await submitButton.click()
-
-        // Wait for navigation to the builder page
-        await page.waitForTimeout(2000)
-
-        // Should be on the builder page now (URL contains the agent ID)
-        const url = page.url()
-        const isOnBuilder =
-          url.includes('/agents/') ||
-          url.includes('/builder') ||
-          url.includes('/build')
-
-        // Or the page content should show builder elements
-        const hasBuilderContent = await page
-          .getByText(/mission|identity|capabilities/i)
-          .first()
-          .isVisible()
-          .catch(() => false)
-
-        expect(isOnBuilder || hasBuilderContent).toBe(true)
-      }
+    if (await nameInput.isVisible()) {
+      await nameInput.fill('TestBot')
+      const value = await nameInput.inputValue()
+      expect(value).toBe('TestBot')
     }
   })
 
-  test('clicking a template navigates to the builder with pre-filled data', async ({
+  // ── Step 4: Review + Create ─────────────────────────────────────
+
+  test('step 4 shows review summary and create button', async ({ page }) => {
+    // Navigate through all steps
+    const supportCard = page.getByText('Support').first()
+    await supportCard.click()
+    await page.waitForTimeout(300)
+
+    const myTeam = page.getByText(/my team/i).first()
+    await myTeam.click()
+    await page.waitForTimeout(300)
+
+    const nameInput = page.getByPlaceholder(/fixie|scout|muse/i)
+      .or(page.getByRole('textbox').first())
+    await nameInput.fill('TestBot')
+
+    const nextButton = page.getByRole('button', { name: /next/i })
+    await nextButton.click()
+    await page.waitForTimeout(300)
+
+    // Should show review page
+    const reviewHeading = page.getByText(/review/i).first()
+    await expect(reviewHeading).toBeVisible()
+
+    // Should show create button with agent name
+    const createButton = page.getByRole('button', { name: /create testbot/i })
+    const hasCreate = await createButton.isVisible().catch(() => false)
+    expect(hasCreate).toBe(true)
+  })
+
+  // ── Custom archetype ────────────────────────────────────────────
+
+  test('selecting Custom shows a textarea for description', async ({ page }) => {
+    const customCard = page.getByText('Custom').first()
+    await customCard.click()
+    await page.waitForTimeout(300)
+
+    // Should show a textarea for the description
+    const textarea = page.getByPlaceholder(/describe what your agent/i)
+      .or(page.locator('textarea').first())
+    const hasTextarea = await textarea.isVisible().catch(() => false)
+    expect(hasTextarea).toBe(true)
+  })
+
+  // ── Template path ───────────────────────────────────────────────
+
+  test('clicking a template navigates to the builder', async ({
     page,
   }) => {
-    // Click on the Customer Support template
     const template = page.getByText(/customer support/i).first()
 
     if (await template.isVisible()) {
       await template.click()
-
-      // Wait for navigation
       await page.waitForTimeout(2000)
 
-      // Should be on the builder page
       const url = page.url()
       const isOnBuilder =
         url.includes('/agents/') ||
         url.includes('/builder') ||
         url.includes('/build')
 
-      // Or the page content should show builder elements with pre-filled data
       const hasBuilderContent = await page
         .getByText(/mission|identity|support/i)
         .first()
@@ -144,15 +218,31 @@ test.describe('New Agent Page', () => {
     }
   })
 
-  test('description input accepts text', async ({ page }) => {
-    const descInput = page
-      .getByPlaceholder(/describe|agent|one sentence/i)
-      .or(page.getByRole('textbox').first())
+  // ── Navigation ──────────────────────────────────────────────────
 
-    if (await descInput.isVisible()) {
-      await descInput.fill('A research assistant that monitors AI papers')
-      const value = await descInput.inputValue()
-      expect(value).toContain('research assistant')
-    }
+  test('step indicator dots are visible', async ({ page }) => {
+    // There should be 4 step dots
+    const dots = page.locator('.rounded-full.h-2.w-2')
+    const count = await dots.count()
+    expect(count).toBe(4)
+  })
+
+  test('back button goes to previous step', async ({ page }) => {
+    const supportCard = page.getByText('Support').first()
+    await supportCard.click()
+    await page.waitForTimeout(300)
+
+    // Should be on step 2
+    const audienceHeading = page.getByText(/who will use it/i)
+    await expect(audienceHeading).toBeVisible()
+
+    // Click back
+    const backButton = page.getByText('Back').first()
+    await backButton.click()
+    await page.waitForTimeout(300)
+
+    // Should be back on step 1
+    const step1Heading = page.getByText(/what kind of agent/i)
+    await expect(step1Heading).toBeVisible()
   })
 })

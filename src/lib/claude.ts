@@ -25,11 +25,19 @@ export async function chat(
 }
 
 /**
- * Takes a one-sentence agent description and returns an inferred config
- * with mission, identity, capabilities, etc.
+ * Takes a one-sentence agent description OR a structured input object
+ * and returns an inferred config with mission, identity, capabilities, etc.
  */
 export async function inferFromDescription(
-  description: string
+  input:
+    | string
+    | {
+        archetype: string;
+        audience: string;
+        name: string;
+        context?: string;
+        customDescription?: string;
+      }
 ): Promise<{
   name: string;
   config: Record<string, unknown>;
@@ -79,8 +87,23 @@ Return ONLY valid JSON (no markdown, no code fences) with this exact structure:
 
 Be creative but practical. Infer reasonable defaults from the description. The name should be memorable and short.`;
 
+  // Build the user message based on input type
+  let userMessage: string;
+  if (typeof input === "string") {
+    userMessage = input;
+  } else {
+    const lines = [`Create an agent configuration for:`];
+    lines.push(`- Type: ${input.archetype}${input.customDescription ? ` (${input.customDescription})` : ""}`);
+    lines.push(`- Audience: ${input.audience}`);
+    lines.push(`- Name: ${input.name}`);
+    if (input.context) {
+      lines.push(`- Additional context: ${input.context}`);
+    }
+    userMessage = lines.join("\n");
+  }
+
   const response = await chat(systemPrompt, [
-    { role: "user", content: description },
+    { role: "user", content: userMessage },
   ]);
 
   try {
@@ -92,17 +115,21 @@ Be creative but practical. Infer reasonable defaults from the description. The n
     return JSON.parse(jsonStr);
   } catch {
     // If parsing fails, return a basic structure
+    const description = typeof input === "string" ? input : input.customDescription || input.archetype;
     return {
-      name: "New Agent",
+      name: typeof input === "string" ? "New Agent" : input.name,
       config: {
         mission: {
           description: description,
           tasks: [],
           exclusions: [],
-          audience: { primary: "General users", scope: "public" },
+          audience: {
+            primary: "General users",
+            scope: typeof input === "string" ? "public" : input.audience,
+          },
         },
         identity: {
-          name: "New Agent",
+          name: typeof input === "string" ? "New Agent" : input.name,
           tone: "friendly",
           vibe: "Helpful and knowledgeable",
         },

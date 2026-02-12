@@ -304,4 +304,97 @@ describe('POST /api/agents', () => {
     // Should not return 500 -- should gracefully fall back
     expect(res.status).toBe(201)
   })
+
+  // =========================================================================
+  // Structured creation (archetype-based)
+  // =========================================================================
+
+  it('creates an agent with structured archetype input and returns 201', async () => {
+    const mocked = getMockedPrisma()
+    const createdAgent = createMockAgentProject({
+      id: 'clx_arch_1',
+      name: 'Fixie',
+      slug: 'fixie-abc123',
+      status: 'draft',
+    })
+    mocked.agentProject.create.mockResolvedValue(createdAgent)
+
+    const req = createRequest('POST', 'http://localhost:3000/api/agents', {
+      archetype: 'support',
+      audience: 'team',
+      name: 'Fixie',
+    })
+    const res = await POST(req)
+    const body = (await res.json()) as Record<string, unknown>
+
+    expect(res.status).toBe(201)
+    expect(body).toHaveProperty('id')
+    expect(body).toHaveProperty('name')
+  })
+
+  it('calls inferFromDescription with structured input for archetype path', async () => {
+    const mocked = getMockedPrisma()
+    const createdAgent = createMockAgentProject()
+    mocked.agentProject.create.mockResolvedValue(createdAgent)
+
+    const { inferFromDescription } = await import('@/lib/claude')
+
+    const req = createRequest('POST', 'http://localhost:3000/api/agents', {
+      archetype: 'research',
+      audience: 'owner-only',
+      name: 'Scout',
+      context: 'Focus on AI papers',
+    })
+    await POST(req)
+
+    // Should be called with an object, not a string
+    expect(inferFromDescription).toHaveBeenCalledWith(
+      expect.objectContaining({
+        audience: 'owner-only',
+        name: 'Scout',
+        context: 'Focus on AI papers',
+      })
+    )
+  })
+
+  it('uses the user-provided name for archetype-based creation', async () => {
+    const mocked = getMockedPrisma()
+    mocked.agentProject.create.mockImplementation(
+      async (args: { data: Record<string, unknown> }) => {
+        return {
+          ...createMockAgentProject(),
+          name: args.data.name as string,
+          slug: args.data.slug as string,
+        }
+      }
+    )
+
+    const req = createRequest('POST', 'http://localhost:3000/api/agents', {
+      archetype: 'creative',
+      audience: 'public',
+      name: 'Muse',
+    })
+    const res = await POST(req)
+    const body = (await res.json()) as Record<string, unknown>
+
+    expect(body.name).toBe('Muse')
+  })
+
+  it('gracefully handles inference failure for archetype path with fallback config', async () => {
+    const mocked = getMockedPrisma()
+    const { inferFromDescription } = await import('@/lib/claude')
+    vi.mocked(inferFromDescription).mockRejectedValueOnce(new Error('Claude API error'))
+
+    const createdAgent = createMockAgentProject({ status: 'draft' })
+    mocked.agentProject.create.mockResolvedValue(createdAgent)
+
+    const req = createRequest('POST', 'http://localhost:3000/api/agents', {
+      archetype: 'support',
+      audience: 'team',
+      name: 'Fixie',
+    })
+    const res = await POST(req)
+
+    expect(res.status).toBe(201)
+  })
 })

@@ -198,3 +198,14 @@ export function defaultConversations(): ConversationData {
     guardrails: [],
   };
 }
+
+// ── Structured creation input (new multi-step flow) ──────────────
+
+export interface CreateAgentInput {
+  archetype: string;
+  audience: "owner-only" | "team" | "public";
+  name: string;
+  emoji?: string;
+  context?: string; // optional free-text from "anything specific?" textarea
+  customDescription?: string; // only when archetype === "custom"
+}

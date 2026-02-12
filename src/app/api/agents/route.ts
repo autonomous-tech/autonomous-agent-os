@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { inferFromDescription } from "@/lib/claude";
 import { defaultStageData, defaultConversations } from "@/lib/types";
 import { generateSlug } from "@/lib/slug";
+import { ARCHETYPES } from "@/lib/archetypes";
 import type { AgentConfig, StageData } from "@/lib/types";
 
 // GET /api/agents -- list all agent projects
@@ -60,6 +61,61 @@ export async function POST(request: NextRequest) {
       config = JSON.parse(template.config);
       stages = JSON.parse(template.stages);
     }
+    // If archetype is provided, use new structured creation path
+    else if (body.archetype) {
+      const archetypeInfo = ARCHETYPES.find((a) => a.id === body.archetype);
+      const archetypeLabel = archetypeInfo
+        ? `${archetypeInfo.name} agent (${archetypeInfo.description})`
+        : body.archetype;
+
+      try {
+        const inferred = await inferFromDescription({
+          archetype: archetypeLabel,
+          audience: body.audience || "team",
+          name: body.name || "New Agent",
+          context: body.context,
+          customDescription: body.customDescription,
+        });
+
+        // Use the user-provided name, not the inferred one
+        name = body.name || inferred.name || "New Agent";
+        config = inferred.config as AgentConfig;
+
+        // Ensure audience scope is set from the structured input
+        if (config.mission) {
+          if (!config.mission.audience) {
+            config.mission.audience = {};
+          }
+          config.mission.audience.scope = body.audience || "team";
+        }
+
+        // Set mission and identity stages to draft since we have data
+        stages.mission = { status: "draft", data: {} };
+        stages.identity = { status: "draft", data: {} };
+      } catch (inferError) {
+        console.error("Failed to infer from archetype:", inferError);
+        // Continue with defaults derived from the archetype
+        name = body.name || "New Agent";
+        config = {
+          mission: {
+            description: body.customDescription || archetypeInfo?.description || "",
+            tasks: archetypeInfo?.defaultConfig.tasks || [],
+            exclusions: [],
+            audience: {
+              primary: archetypeInfo?.defaultConfig.audience || "General users",
+              scope: body.audience || "team",
+            },
+          },
+          identity: {
+            name: body.name || "New Agent",
+            tone: archetypeInfo?.defaultConfig.tone || "friendly",
+            vibe: "Helpful and knowledgeable",
+          },
+        };
+        stages.mission = { status: "draft", data: {} };
+        stages.identity = { status: "draft", data: {} };
+      }
+    }
     // If description is provided, infer config from Claude
     else if (initialDescription) {
       try {
@@ -95,7 +151,7 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         slug,
-        description: initialDescription || config.mission?.description || "",
+        description: initialDescription || body.customDescription || config.mission?.description || "",
         status: templateId ? "building" : "draft",
         config: JSON.stringify(config),
         stages: JSON.stringify(stages),
