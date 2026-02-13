@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Send, Loader2 } from "lucide-react";
 import { StreamingMessage } from "./StreamingMessage";
-import { cn } from "@/lib/utils";
 
 interface ChatPanelProps {
   agentId: string;

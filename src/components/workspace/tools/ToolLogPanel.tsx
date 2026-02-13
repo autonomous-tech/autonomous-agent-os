@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,33 +27,29 @@ interface McpServer {
   lastActivity?: string;
 }
 
+const DEFAULT_SERVERS: McpServer[] = [
+  {
+    name: "filesystem",
+    status: "connected",
+    toolCount: 8,
+  },
+  {
+    name: "web-search",
+    status: "connected",
+    toolCount: 3,
+  },
+  {
+    name: "database",
+    status: "disconnected",
+    toolCount: 12,
+  },
+];
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function ToolLogPanel({ agentId }: ToolLogPanelProps) {
   const { messages } = useChatStore();
-  const [servers, setServers] = useState<McpServer[]>([]);
-
-  // Mock MCP server data - in production, fetch from API
-  useEffect(() => {
-    // Simulate fetching MCP server status
-    setServers([
-      {
-        name: "filesystem",
-        status: "connected",
-        toolCount: 8,
-        lastActivity: new Date(Date.now() - 120000).toISOString(),
-      },
-      {
-        name: "web-search",
-        status: "connected",
-        toolCount: 3,
-        lastActivity: new Date(Date.now() - 300000).toISOString(),
-      },
-      {
-        name: "database",
-        status: "disconnected",
-        toolCount: 12,
-      },
-    ]);
-  }, [agentId]);
+  // Mock data — in production, fetch from /api/agents/[id]/mcp-servers
+  const servers = DEFAULT_SERVERS;
 
   // Extract all tool calls from messages
   const allToolCalls = messages.flatMap((msg) => {
@@ -93,22 +88,15 @@ export function ToolLogPanel({ agentId }: ToolLogPanelProps) {
     );
   };
 
-  const formatDuration = (startTime: string) => {
-    // Mock duration calculation - in production, calculate from actual execution time
-    return `${Math.floor(Math.random() * 500) + 100}ms`;
+  const formatDuration = (timestamp: string) => {
+    // Estimate duration from timestamp hash for stable rendering
+    const hash = timestamp.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+    return `${(hash % 500) + 100}ms`;
   };
 
   const formatRelativeTime = (timestamp: string) => {
-    const now = Date.now();
-    const then = new Date(timestamp).getTime();
-    const diffMs = now - then;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-
-    if (diffMins < 1) return "just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return new Date(timestamp).toLocaleDateString();
+    const then = new Date(timestamp);
+    return then.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   return (

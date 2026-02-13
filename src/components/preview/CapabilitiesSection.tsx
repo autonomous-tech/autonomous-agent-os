@@ -13,7 +13,6 @@ interface CapabilitiesSectionProps {
 }
 
 export function CapabilitiesSection({
-  config,
   tools,
   draft,
   editing,

@@ -150,17 +150,10 @@ export default async function Home() {
                           {activeDeployment && ` · v${activeDeployment.version}`}
                         </span>
                         {isDeployed && agent.slug && (
-                          <button
-                            className="text-[11px] text-green-500 hover:text-green-400 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              window.open(`/a/${agent.slug}`, "_blank");
-                            }}
-                          >
+                          <span className="text-[11px] text-green-500 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <ExternalLink className="h-2.5 w-2.5" />
-                            Open
-                          </button>
+                            Live
+                          </span>
                         )}
                       </div>
                     </CardContent>

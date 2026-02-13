@@ -291,7 +291,7 @@ export default function NewTeamPage() {
 
               {!agentsLoaded && !isLoadingAgents && (
                 <div className="text-center py-8 text-zinc-500 text-sm">
-                  Click "Load Agents" to select team members
+                  Click &quot;Load Agents&quot; to select team members
                 </div>
               )}
             </CardContent>

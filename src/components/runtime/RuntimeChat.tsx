@@ -35,7 +35,6 @@ interface RuntimeChatProps {
 
 export function RuntimeChat({ slug }: RuntimeChatProps) {
   const [agentInfo, setAgentInfo] = useState<AgentInfo | null>(null);
-  const [maxTurns, setMaxTurns] = useState(50);
   const [messages, setMessages] = useState<RuntimeMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -58,7 +57,6 @@ export function RuntimeChat({ slug }: RuntimeChatProps) {
         }
         const data = await res.json();
         setAgentInfo(data.agent);
-        setMaxTurns(data.maxTurns);
       } catch {
         setError("Failed to connect to the server");
       } finally {

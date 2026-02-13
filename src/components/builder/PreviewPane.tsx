@@ -160,6 +160,7 @@ export function PreviewPane({
   stages,
   onExport,
   isExporting,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onStageSelect,
   onConfigUpdate,
   deployment,

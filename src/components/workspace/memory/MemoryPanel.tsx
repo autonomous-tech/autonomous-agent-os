@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Search, Loader2, Database, Archive } from "lucide-react";
 import { MemoryBlockCard } from "./MemoryBlockCard";
-import { cn } from "@/lib/utils";
 
 interface MemoryPanelProps {
   lettaAgentId: string;
@@ -31,6 +30,7 @@ export function MemoryPanel({ lettaAgentId }: MemoryPanelProps) {
   // Fetch core memory blocks on mount
   useEffect(() => {
     fetchCoreMemory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lettaAgentId]);
 
   const fetchCoreMemory = async () => {
@@ -141,7 +141,7 @@ export function MemoryPanel({ lettaAgentId }: MemoryPanelProps) {
             {archivalQuery && (
               <div className="space-y-2">
                 <div className="text-sm text-zinc-500">
-                  Results for "{archivalQuery}" ({archivalResults.length})
+                  Results for &quot;{archivalQuery}&quot; ({archivalResults.length})
                 </div>
                 {archivalResults.length === 0 ? (
                   <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6 text-center">

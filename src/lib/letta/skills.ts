@@ -192,7 +192,7 @@ async function findSkillFiles(dir: string): Promise<string[]> {
     }
 
     return skillFiles;
-  } catch (error) {
+  } catch {
     // Silently skip directories we can't read
     return skillFiles;
   }

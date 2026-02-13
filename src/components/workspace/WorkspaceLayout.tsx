@@ -2,13 +2,12 @@
 
 import { useEffect } from "react";
 import { useWorkspaceStore } from "@/stores/workspace-store";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NavRail } from "./NavRail";
 import { ChatPanel } from "./chat/ChatPanel";
 import { MemoryPanel } from "./memory/MemoryPanel";
 import { ToolLogPanel } from "./tools/ToolLogPanel";
 import { MessageSquare, Database, Wrench, FileText, Settings } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface WorkspaceLayoutProps {
   agents: Array<{ id: string; name: string; emoji?: string; lettaAgentId?: string | null }>;
@@ -20,7 +19,6 @@ export function WorkspaceLayout({ agents }: WorkspaceLayoutProps) {
     activeLettaAgentId,
     activeTab,
     rightPanelOpen,
-    sidebarCollapsed,
     setActiveTab,
     toggleSidebar,
   } = useWorkspaceStore();

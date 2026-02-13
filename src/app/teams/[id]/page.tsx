@@ -8,9 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Users, Plus, Loader2, Rocket, FolderKanban, Activity } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 const ChatPanel = dynamic(
   () => import("@/components/workspace/chat/ChatPanel").then((m) => ({ default: m.ChatPanel })),
@@ -87,6 +86,7 @@ export default function TeamWorkspacePage({ params }: { params: Promise<{ id: st
 
   useEffect(() => {
     loadTeam();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
@@ -94,6 +94,7 @@ export default function TeamWorkspacePage({ params }: { params: Promise<{ id: st
       loadMemory();
       loadActivity();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [team, activeAgentIndex]);
 
   const loadTeam = async () => {

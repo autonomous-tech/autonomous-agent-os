@@ -13,7 +13,6 @@ interface TriggersSectionProps {
 }
 
 export function TriggersSection({
-  config,
   triggers,
   draft,
   editing,
