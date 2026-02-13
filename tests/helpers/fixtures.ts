@@ -63,21 +63,6 @@ export const sampleAgentConfig: AgentConfig = {
         description: 'Look up user account status for login troubleshooting',
       },
     ],
-    skills: [
-      {
-        id: 'troubleshooting',
-        name: 'Login Troubleshooting',
-        description: 'Step-by-step guide for resolving common login issues',
-        when_to_use: 'User reports login or authentication problems',
-        steps: [
-          'Ask for the email address associated with the account',
-          'Look up account status',
-          'If locked: guide through unlock process',
-          'If password issue: guide through reset',
-          'If 2FA issue: escalate to human support',
-        ],
-      },
-    ],
   },
   memory: {
     strategy: 'conversational',
@@ -85,9 +70,6 @@ export const sampleAgentConfig: AgentConfig = {
       'Previous conversations with each user',
       'User preferences and account context',
     ],
-    daily_logs: true,
-    curated_memory: true,
-    max_memory_size: '500 lines',
   },
   triggers: {
     triggers: [
@@ -150,7 +132,6 @@ export const sampleStageData: StageData = {
     status: 'approved',
     data: {
       tools: sampleAgentConfig.capabilities!.tools,
-      skills: sampleAgentConfig.capabilities!.skills,
     },
   },
   memory: {
@@ -158,9 +139,6 @@ export const sampleStageData: StageData = {
     data: {
       strategy: sampleAgentConfig.memory!.strategy,
       remember: sampleAgentConfig.memory!.remember,
-      daily_logs: sampleAgentConfig.memory!.daily_logs,
-      curated_memory: sampleAgentConfig.memory!.curated_memory,
-      max_memory_size: sampleAgentConfig.memory!.max_memory_size,
     },
   },
   triggers: {
@@ -350,9 +328,6 @@ export const helixAgentConfig: AgentConfig = {
   memory: {
     strategy: 'task-based',
     remember: ['Research topics', 'Key findings'],
-    daily_logs: true,
-    curated_memory: true,
-    max_memory_size: '500 lines',
   },
   triggers: {
     triggers: [

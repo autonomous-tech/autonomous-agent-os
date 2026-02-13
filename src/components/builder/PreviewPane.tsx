@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   Play,
-  Download,
   Loader2,
   Pencil,
   Check,
@@ -138,8 +137,6 @@ interface PreviewPaneProps {
   projectId: string;
   config: AgentConfig;
   stages: StageData;
-  onExport: () => void;
-  isExporting: boolean;
   onStageSelect: (stage: StageName) => void;
   onConfigUpdate?: (stage: StageName, data: Record<string, unknown>) => void;
   deployment?: { id: string; status: string; version: number; createdAt: string } | null;
@@ -158,8 +155,6 @@ export function PreviewPane({
   projectId,
   config,
   stages,
-  onExport,
-  isExporting,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onStageSelect,
   onConfigUpdate,
@@ -517,18 +512,6 @@ export function PreviewPane({
               Resume
             </Button>
           ) : null}
-          <Button
-            className="flex-1"
-            onClick={onExport}
-            disabled={isExporting}
-          >
-            {isExporting ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4 mr-2" />
-            )}
-            Export
-          </Button>
         </div>
       </div>
 

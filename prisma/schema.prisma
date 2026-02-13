@@ -24,7 +24,6 @@ model AgentProject {
 
   deployments    Deployment[]
   mcpServers     McpServerConfig[]
-  teamMemberships TeamMembership[]
 }
 
 model AgentTemplate {
@@ -116,93 +115,3 @@ model ToolExecutionLog {
   @@index([toolName])
 }
 
-// ── Multi-Agent Teams ─────────────────────────────────────────────
-
-model AgentTeam {
-  id                    String           @id @default(cuid())
-  name                  String
-  slug                  String           @unique
-  description           String           @default("")
-  orchestrationConfig   String           @default("{}") // JSON: orchestration mode, pipeline stages, etc.
-  status                String           @default("draft") // "draft" | "active" | "archived"
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
-
-  members               TeamMembership[]
-  projects              TeamProject[]
-}
-
-model TeamMembership {
-  id            String       @id @default(cuid())
-  teamId        String
-  agentId       String
-  role          String       @default("member") // "orchestrator" | "member"
-  lettaAgentId  String?      // Letta agent ID when deployed as part of team
-  createdAt     DateTime     @default(now())
-
-  team          AgentTeam    @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  agent         AgentProject @relation(fields: [agentId], references: [id], onDelete: Cascade)
-
-  @@unique([teamId, agentId])
-  @@index([teamId])
-  @@index([agentId])
-}
-
-model TeamProject {
-  id            String     @id @default(cuid())
-  teamId        String
-  name          String
-  brief         String     @default("")
-  status        String     @default("active") // "active" | "completed" | "archived"
-  lettaBlockIds String     @default("{}") // JSON: { project, decisions, taskBoard, brand } block IDs
-  activityLog   String     @default("[]") // JSON array of activity entries
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-
-  team          AgentTeam  @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  tasks         Task[]
-  artifacts     Artifact[]
-
-  @@index([teamId])
-}
-
-model Task {
-  id              String       @id @default(cuid())
-  teamProjectId   String?
-  agentId         String?      // Standalone agent task (outside team context)
-  title           String
-  description     String       @default("")
-  status          String       @default("pending") // "pending" | "in_progress" | "done" | "blocked"
-  assignedTo      String?      // Agent ID or name
-  metadata        String       @default("{}") // JSON for extra data
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-
-  teamProject     TeamProject? @relation(fields: [teamProjectId], references: [id], onDelete: Cascade)
-  artifacts       Artifact[]
-
-  @@index([teamProjectId])
-  @@index([agentId])
-}
-
-model Artifact {
-  id              String       @id @default(cuid())
-  agentId         String?      // Which agent produced it
-  taskId          String?
-  teamProjectId   String?
-  type            String       // "wireframe" | "code" | "copy" | "design" | "document" | "other"
-  name            String
-  content         String       @default("") // Full content (Markdown + YAML frontmatter)
-  path            String?      // File path if stored on disk
-  url             String?      // URL if hosted
-  metadata        String       @default("{}") // JSON for extra data
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-
-  task            Task?        @relation(fields: [taskId], references: [id], onDelete: SetNull)
-  teamProject     TeamProject? @relation(fields: [teamProjectId], references: [id], onDelete: Cascade)
-
-  @@index([agentId])
-  @@index([taskId])
-  @@index([teamProjectId])
-}

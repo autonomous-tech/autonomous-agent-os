@@ -16,23 +16,24 @@ interface MemoryBlockCardProps {
 }
 
 export function MemoryBlockCard({ block, lettaAgentId, onUpdate }: MemoryBlockCardProps) {
-  const { isEditing, editDraft, startEditing, updateDraft, cancelEditing, setLoading } =
-    useMemoryStore();
+  const { setLoading } = useMemoryStore();
 
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  const isCurrentlyEditing = isEditing && editDraft !== "";
+  const [isEditing, setIsEditing] = useState(false);
+  const [editDraft, setEditDraft] = useState("");
   const valueLength = block.value.length;
   const usagePercent = (valueLength / block.limit) * 100;
   const shouldTruncate = valueLength > 200;
 
   const handleEdit = () => {
-    startEditing(block.value);
+    setIsEditing(true);
+    setEditDraft(block.value);
   };
 
   const handleCancel = () => {
-    cancelEditing();
+    setIsEditing(false);
+    setEditDraft("");
   };
 
   const handleSave = async () => {
@@ -51,7 +52,8 @@ export function MemoryBlockCard({ block, lettaAgentId, onUpdate }: MemoryBlockCa
 
       if (!response.ok) throw new Error("Failed to update memory");
 
-      cancelEditing();
+      setIsEditing(false);
+      setEditDraft("");
       if (onUpdate) onUpdate();
     } catch (err) {
       console.error("Error saving memory block:", err);
@@ -83,7 +85,7 @@ export function MemoryBlockCard({ block, lettaAgentId, onUpdate }: MemoryBlockCa
                 Read-only
               </Badge>
             )}
-            {!block.readOnly && !isCurrentlyEditing && (
+            {!block.readOnly && !isEditing && (
               <Button variant="ghost" size="icon-xs" onClick={handleEdit}>
                 <Edit2 className="h-3 w-3" />
               </Button>
@@ -116,12 +118,12 @@ export function MemoryBlockCard({ block, lettaAgentId, onUpdate }: MemoryBlockCa
       </CardHeader>
 
       <CardContent className="space-y-2 pt-0">
-        {isCurrentlyEditing ? (
+        {isEditing ? (
           // Edit Mode
           <div className="space-y-2">
             <Textarea
               value={editDraft}
-              onChange={(e) => updateDraft(e.target.value)}
+              onChange={(e) => setEditDraft(e.target.value)}
               className="min-h-[120px] bg-zinc-950 text-sm text-zinc-100"
               maxLength={block.limit}
             />

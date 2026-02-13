@@ -10,26 +10,23 @@ import { StreamingMessage } from "./StreamingMessage";
 
 interface ChatPanelProps {
   agentId: string;
-  lettaAgentId: string | null;
+  slug: string;
 }
 
-export function ChatPanel({ agentId, lettaAgentId }: ChatPanelProps) {
+export function ChatPanel({ agentId, slug }: ChatPanelProps) {
   const {
     messages,
     isStreaming,
     error,
-    addUserMessage,
+    addMessage,
     startStreaming,
-    appendStreamContent,
-    appendStreamReasoning,
-    addToolCall,
-    resolveToolCall,
-    addMemoryUpdate,
+    updateStreamingMessage,
     finishStreaming,
     setError,
   } = useChatStore();
 
   const [input, setInput] = useState("");
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -45,111 +42,34 @@ export function ChatPanel({ agentId, lettaAgentId }: ChatPanelProps) {
 
     const userMessage = input.trim();
     setInput("");
-    addUserMessage(userMessage);
+    addMessage("user", userMessage);
 
-    // Use Letta streaming if available
-    if (lettaAgentId) {
-      await handleLettaStream(userMessage);
-    } else {
-      await handleLegacyChat(userMessage);
-    }
-  };
-
-  const handleLettaStream = async (message: string) => {
     try {
       startStreaming();
 
-      const response = await fetch(`/api/letta/agents/${lettaAgentId}/messages/stream`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error("No response body");
-
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          if (!line.trim() || !line.startsWith("data: ")) continue;
-
-          const data = line.slice(6);
-          if (data === "[DONE]") continue;
-
-          try {
-            const event = JSON.parse(data);
-
-            switch (event.type) {
-              case "text":
-                appendStreamContent(event.content);
-                break;
-              case "reasoning":
-                appendStreamReasoning(event.content);
-                break;
-              case "tool_call":
-                addToolCall({
-                  id: event.id,
-                  name: event.name,
-                  arguments: event.arguments,
-                });
-                break;
-              case "tool_result":
-                resolveToolCall(event.id, event.result, event.status);
-                break;
-              case "memory_update":
-                addMemoryUpdate(event.label, event.action);
-                break;
-              case "done":
-                finishStreaming(event.messageId);
-                break;
-              case "error":
-                setError(event.message);
-                break;
-            }
-          } catch (e) {
-            console.error("Failed to parse SSE event:", e);
-          }
-        }
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send message");
-    }
-  };
-
-  const handleLegacyChat = async (message: string) => {
-    try {
-      startStreaming();
-
-      const response = await fetch("/api/chat", {
+      const response = await fetch(`/api/runtime/${slug}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          projectId: agentId,
-          stage: "mission", // Default stage for now
-          message,
+          message: userMessage,
+          ...(sessionToken ? { sessionToken } : {}),
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP ${response.status}`);
       }
 
       const data = await response.json();
-      appendStreamContent(data.reply);
-      finishStreaming(crypto.randomUUID());
+
+      // Store session token for subsequent messages
+      if (data.session?.token) {
+        setSessionToken(data.session.token);
+      }
+
+      updateStreamingMessage({ content: data.message?.content ?? data.message });
+      finishStreaming(data.message?.id ?? crypto.randomUUID());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send message");
     }

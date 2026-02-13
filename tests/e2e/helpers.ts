@@ -22,9 +22,6 @@ export const DEPLOYABLE_CONFIG = {
   memory: {
     strategy: 'conversational',
     remember: ['Test context'],
-    daily_logs: false,
-    curated_memory: false,
-    max_memory_size: '100 lines',
   },
   triggers: {
     triggers: [

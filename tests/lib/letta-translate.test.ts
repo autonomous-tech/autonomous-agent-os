@@ -4,10 +4,7 @@ vi.mock("@/lib/runtime/prompt", () => ({
   buildRuntimeSystemPrompt: vi.fn().mockReturnValue("System prompt for runtime"),
 }));
 
-import {
-  translateToLettaParams,
-  buildMemoryCategorizationPrompt,
-} from "@/lib/letta/translate";
+import { translateToLettaParams } from "@/lib/letta/translate";
 import type { AgentConfig } from "@/lib/types";
 
 describe("translateToLettaParams", () => {
@@ -207,35 +204,3 @@ describe("translateToLettaParams", () => {
   });
 });
 
-describe("buildMemoryCategorizationPrompt", () => {
-  it("returns a string", () => {
-    const result = buildMemoryCategorizationPrompt();
-    expect(typeof result).toBe("string");
-  });
-
-  it("contains key phrase 'About THIS project'", () => {
-    const result = buildMemoryCategorizationPrompt();
-    expect(result).toContain("About THIS project");
-  });
-
-  it("contains key phrase 'About the USER\\'s preferences'", () => {
-    const result = buildMemoryCategorizationPrompt();
-    expect(result).toContain("About the USER's preferences");
-  });
-
-  it("contains key phrase 'About your craft'", () => {
-    const result = buildMemoryCategorizationPrompt();
-    expect(result).toContain("About your craft");
-  });
-
-  it("contains Memory Management heading", () => {
-    const result = buildMemoryCategorizationPrompt();
-    expect(result).toContain("## Memory Management");
-  });
-
-  it("mentions core_memory_replace and archival_memory_insert", () => {
-    const result = buildMemoryCategorizationPrompt();
-    expect(result).toContain("core_memory_replace");
-    expect(result).toContain("archival_memory_insert");
-  });
-});

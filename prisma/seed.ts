@@ -90,9 +90,6 @@ const helixConfig = {
       "Resolution history for recurring problems",
       "Product FAQ updates learned from conversations",
     ],
-    daily_logs: true,
-    curated_memory: true,
-    max_memory_size: "500 lines",
   },
   triggers: [
     {
@@ -173,9 +170,6 @@ const sageConfig = {
       "User research preferences and priority topics",
       "Connections and patterns across research topics",
     ],
-    daily_logs: true,
-    curated_memory: true,
-    max_memory_size: "1000 lines",
   },
   triggers: [
     {
@@ -260,9 +254,6 @@ const scoutConfig = {
       "User preferences for outreach style and messaging tone",
       "Competitive intelligence gathered during research",
     ],
-    daily_logs: true,
-    curated_memory: true,
-    max_memory_size: "750 lines",
   },
   triggers: [
     {
@@ -329,9 +320,6 @@ function buildStages(config: any) {
       data: {
         strategy: config.memory.strategy,
         remember: config.memory.remember,
-        daily_logs: config.memory.daily_logs,
-        curated_memory: config.memory.curated_memory,
-        max_memory_size: config.memory.max_memory_size,
       },
     },
     triggers: {
@@ -425,9 +413,6 @@ const designerConfig = {
       "Client feedback and revision history",
       "Accessibility requirements and compliance notes",
     ],
-    daily_logs: true,
-    curated_memory: true,
-    max_memory_size: "750 lines",
   },
   triggers: [{ type: "message" as const, description: "Responds when asked to design or build a page, component, or layout" }],
   guardrails: {
@@ -482,9 +467,6 @@ const brandConfig = {
       "Client preferences and feedback on brand direction",
       "Competitor brand analysis notes",
     ],
-    daily_logs: false,
-    curated_memory: true,
-    max_memory_size: "500 lines",
   },
   triggers: [{ type: "message" as const, description: "Responds when asked to define brand guidelines, review content, or assess brand alignment" }],
   guardrails: {
@@ -540,9 +522,6 @@ const contentConfig = {
       "Approved copy and revision history",
       "SEO keywords and content strategy notes",
     ],
-    daily_logs: false,
-    curated_memory: true,
-    max_memory_size: "500 lines",
   },
   triggers: [{ type: "message" as const, description: "Responds when asked to write, edit, or review copy for any page or material" }],
   guardrails: {
@@ -600,9 +579,6 @@ const seoConfig = {
       "Technical SEO issues and fixes applied",
       "Structured data schemas implemented",
     ],
-    daily_logs: false,
-    curated_memory: true,
-    max_memory_size: "500 lines",
   },
   triggers: [{ type: "message" as const, description: "Responds when asked to analyze, optimize, or review pages for SEO" }],
   guardrails: {

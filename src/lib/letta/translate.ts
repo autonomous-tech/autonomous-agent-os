@@ -103,21 +103,3 @@ export function translateToLettaParams(
   };
 }
 
-/**
- * Build the memory categorization instruction that gets appended
- * to the system prompt for Letta agents. This teaches the agent
- * to sort new learnings into the right memory scope.
- */
-export function buildMemoryCategorizationPrompt(): string {
-  return `
-## Memory Management
-
-When you learn something new, decide where to store it:
-
-- **About THIS project** (specific facts, decisions, requirements) → Write to the shared \`decisions\` block using core_memory_replace on the "decisions" label
-- **About the USER's preferences** (general likes/dislikes, work style) → Update your \`persona\` block using core_memory_replace on the "persona" label
-- **About your craft** (techniques, patterns, best practices you've learned) → Store in archival memory using archival_memory_insert
-
-Always be intentional about what you remember. Not every conversation detail needs to be stored — focus on information that will be useful in future interactions.
-`.trim();
-}

@@ -40,33 +40,13 @@ export interface Capability {
   description: string;
 }
 
-export interface Skill {
-  id?: string;
-  name: string;
-  description: string;
-  when_to_use?: string;
-  steps?: string[];
-  constraints?: string[];
-}
-
-export interface ExecutableToolConfig {
-  serverName: string;         // References McpServerConfig.name
-  toolPattern?: string;       // Glob pattern for matching tools (default: "*")
-  access?: "read-only" | "write" | "full";
-}
-
 export interface CapabilitiesConfig {
   tools?: Capability[];
-  skills?: Skill[];
-  executableTools?: ExecutableToolConfig[];
 }
 
 export interface MemoryConfig {
   strategy?: "conversational" | "task-based" | "minimal";
   remember?: string[];
-  daily_logs?: boolean;
-  curated_memory?: boolean;
-  max_memory_size?: string;
 }
 
 export interface Trigger {

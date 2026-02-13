@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import type { AgentConfig, StageData } from "@/lib/types";
-import { validateAgent } from "@/lib/export";
+import { validateAgent } from "@/lib/validate";
 import { buildRuntimeSystemPrompt } from "@/lib/runtime/prompt";
 import { rowToDefinition } from "@/lib/mcp-helpers";
 import { lettaClient, isLettaEnabled } from "@/lib/letta/client";
-import { translateToLettaParams, buildMemoryCategorizationPrompt } from "@/lib/letta/translate";
+import { translateToLettaParams } from "@/lib/letta/translate";
 import { loadSkillsDirectory } from "@/lib/letta/skills";
 import path from "path";
 import fs from "fs/promises";
@@ -86,12 +86,11 @@ export async function POST(
     if (isLettaEnabled() && lettaClient && !agent.lettaAgentId) {
       try {
         const params = translateToLettaParams(agent.name, config);
-        const memPrompt = buildMemoryCategorizationPrompt();
 
         const lettaAgent = await lettaClient.agents.create({
           name: params.name,
           description: params.description,
-          system: params.system + "\n\n" + memPrompt,
+          system: params.system,
           model: params.model,
           embedding: params.embedding,
           memory_blocks: params.memoryBlocks.map((b) => ({

@@ -1,171 +1,10 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { useWorkspaceStore } from "@/stores/workspace-store";
+import { describe, it, expect, beforeEach } from "vitest";
 import { useChatStore, type ChatMessage } from "@/stores/chat-store";
 import {
   useMemoryStore,
   type MemoryBlock,
   type ArchivalPassage,
 } from "@/stores/memory-store";
-
-// ---------------------------------------------------------------------------
-// Workspace Store
-// ---------------------------------------------------------------------------
-describe("useWorkspaceStore", () => {
-  beforeEach(() => {
-    useWorkspaceStore.setState({
-      activeAgentId: null,
-      activeTeamId: null,
-      activeLettaAgentId: null,
-      activeTab: "chat",
-      rightPanelOpen: false,
-      rightPanelContent: null,
-      sidebarCollapsed: false,
-      commandPaletteOpen: false,
-    });
-  });
-
-  describe("initial state", () => {
-    it("has null IDs, chat tab, and all panels closed", () => {
-      const state = useWorkspaceStore.getState();
-      expect(state.activeAgentId).toBeNull();
-      expect(state.activeTeamId).toBeNull();
-      expect(state.activeLettaAgentId).toBeNull();
-      expect(state.activeTab).toBe("chat");
-      expect(state.rightPanelOpen).toBe(false);
-      expect(state.rightPanelContent).toBeNull();
-      expect(state.sidebarCollapsed).toBe(false);
-      expect(state.commandPaletteOpen).toBe(false);
-    });
-  });
-
-  describe("setActiveAgent", () => {
-    it("sets activeAgentId and activeLettaAgentId", () => {
-      useWorkspaceStore.getState().setActiveAgent("agent-1", "letta-1");
-      const state = useWorkspaceStore.getState();
-      expect(state.activeAgentId).toBe("agent-1");
-      expect(state.activeLettaAgentId).toBe("letta-1");
-    });
-
-    it("defaults activeLettaAgentId to null when not provided", () => {
-      useWorkspaceStore.getState().setActiveAgent("agent-2");
-      const state = useWorkspaceStore.getState();
-      expect(state.activeAgentId).toBe("agent-2");
-      expect(state.activeLettaAgentId).toBeNull();
-    });
-
-    it("accepts explicit null for lettaId", () => {
-      useWorkspaceStore.getState().setActiveAgent("agent-3", null);
-      const state = useWorkspaceStore.getState();
-      expect(state.activeAgentId).toBe("agent-3");
-      expect(state.activeLettaAgentId).toBeNull();
-    });
-
-    it("overwrites a previously set agent", () => {
-      const { setActiveAgent } = useWorkspaceStore.getState();
-      setActiveAgent("agent-1", "letta-1");
-      setActiveAgent("agent-2", "letta-2");
-      const state = useWorkspaceStore.getState();
-      expect(state.activeAgentId).toBe("agent-2");
-      expect(state.activeLettaAgentId).toBe("letta-2");
-    });
-  });
-
-  describe("setActiveTeam", () => {
-    it("sets activeTeamId", () => {
-      useWorkspaceStore.getState().setActiveTeam("team-1");
-      expect(useWorkspaceStore.getState().activeTeamId).toBe("team-1");
-    });
-
-    it("accepts null to clear the team", () => {
-      useWorkspaceStore.getState().setActiveTeam("team-1");
-      useWorkspaceStore.getState().setActiveTeam(null);
-      expect(useWorkspaceStore.getState().activeTeamId).toBeNull();
-    });
-  });
-
-  describe("setActiveTab", () => {
-    const tabs = ["chat", "memory", "tools", "artifacts", "settings"] as const;
-
-    it.each(tabs)("sets activeTab to %s", (tab) => {
-      useWorkspaceStore.getState().setActiveTab(tab);
-      expect(useWorkspaceStore.getState().activeTab).toBe(tab);
-    });
-  });
-
-  describe("toggleRightPanel", () => {
-    it("opens the panel when closed", () => {
-      useWorkspaceStore.getState().toggleRightPanel();
-      expect(useWorkspaceStore.getState().rightPanelOpen).toBe(true);
-    });
-
-    it("closes the panel when open", () => {
-      useWorkspaceStore.setState({ rightPanelOpen: true });
-      useWorkspaceStore.getState().toggleRightPanel();
-      expect(useWorkspaceStore.getState().rightPanelOpen).toBe(false);
-    });
-
-    it("toggles back and forth", () => {
-      const { toggleRightPanel } = useWorkspaceStore.getState();
-      toggleRightPanel();
-      expect(useWorkspaceStore.getState().rightPanelOpen).toBe(true);
-      useWorkspaceStore.getState().toggleRightPanel();
-      expect(useWorkspaceStore.getState().rightPanelOpen).toBe(false);
-    });
-  });
-
-  describe("setRightPanelContent", () => {
-    it("sets content and opens the panel", () => {
-      useWorkspaceStore.getState().setRightPanelContent("memory");
-      const state = useWorkspaceStore.getState();
-      expect(state.rightPanelContent).toBe("memory");
-      expect(state.rightPanelOpen).toBe(true);
-    });
-
-    it("sets null content and closes the panel", () => {
-      useWorkspaceStore.setState({ rightPanelOpen: true, rightPanelContent: "tools" });
-      useWorkspaceStore.getState().setRightPanelContent(null);
-      const state = useWorkspaceStore.getState();
-      expect(state.rightPanelContent).toBeNull();
-      expect(state.rightPanelOpen).toBe(false);
-    });
-
-    it.each(["memory", "tools", "artifacts"] as const)(
-      "opens the panel for content %s",
-      (content) => {
-        useWorkspaceStore.getState().setRightPanelContent(content);
-        const state = useWorkspaceStore.getState();
-        expect(state.rightPanelContent).toBe(content);
-        expect(state.rightPanelOpen).toBe(true);
-      }
-    );
-  });
-
-  describe("toggleSidebar", () => {
-    it("collapses the sidebar when expanded", () => {
-      useWorkspaceStore.getState().toggleSidebar();
-      expect(useWorkspaceStore.getState().sidebarCollapsed).toBe(true);
-    });
-
-    it("expands the sidebar when collapsed", () => {
-      useWorkspaceStore.setState({ sidebarCollapsed: true });
-      useWorkspaceStore.getState().toggleSidebar();
-      expect(useWorkspaceStore.getState().sidebarCollapsed).toBe(false);
-    });
-  });
-
-  describe("toggleCommandPalette", () => {
-    it("opens the command palette when closed", () => {
-      useWorkspaceStore.getState().toggleCommandPalette();
-      expect(useWorkspaceStore.getState().commandPaletteOpen).toBe(true);
-    });
-
-    it("closes the command palette when open", () => {
-      useWorkspaceStore.setState({ commandPaletteOpen: true });
-      useWorkspaceStore.getState().toggleCommandPalette();
-      expect(useWorkspaceStore.getState().commandPaletteOpen).toBe(false);
-    });
-  });
-});
 
 // ---------------------------------------------------------------------------
 // Chat Store
@@ -190,9 +29,9 @@ describe("useChatStore", () => {
     });
   });
 
-  describe("addUserMessage", () => {
+  describe("addMessage", () => {
     it("appends a user message with correct role and content", () => {
-      useChatStore.getState().addUserMessage("Hello");
+      useChatStore.getState().addMessage("user", "Hello");
       const { messages } = useChatStore.getState();
       expect(messages).toHaveLength(1);
       expect(messages[0].role).toBe("user");
@@ -203,14 +42,14 @@ describe("useChatStore", () => {
 
     it("clears any existing error", () => {
       useChatStore.setState({ error: "previous error" });
-      useChatStore.getState().addUserMessage("Hello");
+      useChatStore.getState().addMessage("user", "Hello");
       expect(useChatStore.getState().error).toBeNull();
     });
 
     it("appends multiple messages preserving order", () => {
-      const { addUserMessage } = useChatStore.getState();
-      addUserMessage("First");
-      useChatStore.getState().addUserMessage("Second");
+      const { addMessage } = useChatStore.getState();
+      addMessage("user", "First");
+      useChatStore.getState().addMessage("user", "Second");
       const { messages } = useChatStore.getState();
       expect(messages).toHaveLength(2);
       expect(messages[0].content).toBe("First");
@@ -218,8 +57,8 @@ describe("useChatStore", () => {
     });
 
     it("generates unique IDs for each message", () => {
-      useChatStore.getState().addUserMessage("A");
-      useChatStore.getState().addUserMessage("B");
+      useChatStore.getState().addMessage("user", "A");
+      useChatStore.getState().addMessage("user", "B");
       const { messages } = useChatStore.getState();
       expect(messages[0].id).not.toBe(messages[1].id);
     });
@@ -236,26 +75,26 @@ describe("useChatStore", () => {
     });
   });
 
-  describe("appendStreamContent", () => {
+  describe("updateStreamingMessage (content)", () => {
     it("appends text to partialContent", () => {
-      useChatStore.getState().appendStreamContent("Hello");
+      useChatStore.getState().updateStreamingMessage({ content: "Hello" });
       expect(useChatStore.getState().partialContent).toBe("Hello");
     });
 
     it("accumulates multiple appends", () => {
-      useChatStore.getState().appendStreamContent("Hello ");
-      useChatStore.getState().appendStreamContent("world");
+      useChatStore.getState().updateStreamingMessage({ content: "Hello " });
+      useChatStore.getState().updateStreamingMessage({ content: "world" });
       expect(useChatStore.getState().partialContent).toBe("Hello world");
     });
 
     it("appends to existing partialContent", () => {
       useChatStore.setState({ partialContent: "prefix-" });
-      useChatStore.getState().appendStreamContent("suffix");
+      useChatStore.getState().updateStreamingMessage({ content: "suffix" });
       expect(useChatStore.getState().partialContent).toBe("prefix-suffix");
     });
   });
 
-  describe("appendStreamReasoning", () => {
+  describe("updateStreamingMessage (reasoning)", () => {
     it("appends reasoning to the last streaming assistant message", () => {
       const streamingMsg: ChatMessage = {
         id: "msg-1",
@@ -265,7 +104,7 @@ describe("useChatStore", () => {
         isStreaming: true,
       };
       useChatStore.setState({ messages: [streamingMsg] });
-      useChatStore.getState().appendStreamReasoning("thinking...");
+      useChatStore.getState().updateStreamingMessage({ reasoning: "thinking..." });
       const { messages } = useChatStore.getState();
       expect(messages[0].reasoning).toBe("thinking...");
     });
@@ -279,8 +118,8 @@ describe("useChatStore", () => {
         isStreaming: true,
       };
       useChatStore.setState({ messages: [streamingMsg] });
-      useChatStore.getState().appendStreamReasoning("part1");
-      useChatStore.getState().appendStreamReasoning("part2");
+      useChatStore.getState().updateStreamingMessage({ reasoning: "part1" });
+      useChatStore.getState().updateStreamingMessage({ reasoning: "part2" });
       expect(useChatStore.getState().messages[0].reasoning).toBe("part1part2");
     });
 
@@ -292,17 +131,17 @@ describe("useChatStore", () => {
         timestamp: new Date().toISOString(),
       };
       useChatStore.setState({ messages: [userMsg] });
-      useChatStore.getState().appendStreamReasoning("reasoning");
+      useChatStore.getState().updateStreamingMessage({ reasoning: "reasoning" });
       expect(useChatStore.getState().messages[0].reasoning).toBeUndefined();
     });
 
     it("does nothing when messages array is empty", () => {
-      useChatStore.getState().appendStreamReasoning("reasoning");
+      useChatStore.getState().updateStreamingMessage({ reasoning: "reasoning" });
       expect(useChatStore.getState().messages).toHaveLength(0);
     });
   });
 
-  describe("addToolCall", () => {
+  describe("updateStreamingMessage (toolCall)", () => {
     it("appends a tool call to the last streaming assistant message with pending status", () => {
       const streamingMsg: ChatMessage = {
         id: "msg-1",
@@ -312,10 +151,8 @@ describe("useChatStore", () => {
         isStreaming: true,
       };
       useChatStore.setState({ messages: [streamingMsg] });
-      useChatStore.getState().addToolCall({
-        id: "tc-1",
-        name: "search",
-        arguments: '{"q":"test"}',
+      useChatStore.getState().updateStreamingMessage({
+        toolCall: { id: "tc-1", name: "search", arguments: '{"q":"test"}' },
       });
       const { messages } = useChatStore.getState();
       expect(messages[0].toolCalls).toHaveLength(1);
@@ -336,8 +173,12 @@ describe("useChatStore", () => {
         isStreaming: true,
       };
       useChatStore.setState({ messages: [streamingMsg] });
-      useChatStore.getState().addToolCall({ id: "tc-1", name: "a", arguments: "{}" });
-      useChatStore.getState().addToolCall({ id: "tc-2", name: "b", arguments: "{}" });
+      useChatStore.getState().updateStreamingMessage({
+        toolCall: { id: "tc-1", name: "a", arguments: "{}" },
+      });
+      useChatStore.getState().updateStreamingMessage({
+        toolCall: { id: "tc-2", name: "b", arguments: "{}" },
+      });
       expect(useChatStore.getState().messages[0].toolCalls).toHaveLength(2);
     });
 
@@ -349,12 +190,14 @@ describe("useChatStore", () => {
         timestamp: new Date().toISOString(),
       };
       useChatStore.setState({ messages: [userMsg] });
-      useChatStore.getState().addToolCall({ id: "tc-1", name: "a", arguments: "{}" });
+      useChatStore.getState().updateStreamingMessage({
+        toolCall: { id: "tc-1", name: "a", arguments: "{}" },
+      });
       expect(useChatStore.getState().messages[0].toolCalls).toBeUndefined();
     });
   });
 
-  describe("resolveToolCall", () => {
+  describe("updateStreamingMessage (toolResult)", () => {
     it("updates a specific tool call with result and status", () => {
       const streamingMsg: ChatMessage = {
         id: "msg-1",
@@ -368,7 +211,9 @@ describe("useChatStore", () => {
         ],
       };
       useChatStore.setState({ messages: [streamingMsg] });
-      useChatStore.getState().resolveToolCall("tc-1", "found it", "success");
+      useChatStore.getState().updateStreamingMessage({
+        toolResult: { id: "tc-1", result: "found it", status: "success" },
+      });
       const toolCalls = useChatStore.getState().messages[0].toolCalls!;
       expect(toolCalls[0].result).toBe("found it");
       expect(toolCalls[0].status).toBe("success");
@@ -389,7 +234,9 @@ describe("useChatStore", () => {
         ],
       };
       useChatStore.setState({ messages: [streamingMsg] });
-      useChatStore.getState().resolveToolCall("tc-1", "timeout", "error");
+      useChatStore.getState().updateStreamingMessage({
+        toolResult: { id: "tc-1", result: "timeout", status: "error" },
+      });
       const toolCalls = useChatStore.getState().messages[0].toolCalls!;
       expect(toolCalls[0].result).toBe("timeout");
       expect(toolCalls[0].status).toBe("error");
@@ -407,14 +254,16 @@ describe("useChatStore", () => {
         ],
       };
       useChatStore.setState({ messages: [streamingMsg] });
-      useChatStore.getState().resolveToolCall("non-existent", "data", "success");
+      useChatStore.getState().updateStreamingMessage({
+        toolResult: { id: "non-existent", result: "data", status: "success" },
+      });
       const toolCalls = useChatStore.getState().messages[0].toolCalls!;
       expect(toolCalls[0].status).toBe("pending");
       expect(toolCalls[0].result).toBeUndefined();
     });
   });
 
-  describe("addMemoryUpdate", () => {
+  describe("updateStreamingMessage (memoryUpdate)", () => {
     it("appends a memory update to the last streaming assistant message", () => {
       const streamingMsg: ChatMessage = {
         id: "msg-1",
@@ -424,7 +273,9 @@ describe("useChatStore", () => {
         isStreaming: true,
       };
       useChatStore.setState({ messages: [streamingMsg] });
-      useChatStore.getState().addMemoryUpdate("persona", "updated persona block");
+      useChatStore.getState().updateStreamingMessage({
+        memoryUpdate: { label: "persona", action: "updated persona block" },
+      });
       const { messages } = useChatStore.getState();
       expect(messages[0].memoryUpdates).toHaveLength(1);
       expect(messages[0].memoryUpdates![0]).toEqual({
@@ -442,8 +293,12 @@ describe("useChatStore", () => {
         isStreaming: true,
       };
       useChatStore.setState({ messages: [streamingMsg] });
-      useChatStore.getState().addMemoryUpdate("persona", "update 1");
-      useChatStore.getState().addMemoryUpdate("human", "update 2");
+      useChatStore.getState().updateStreamingMessage({
+        memoryUpdate: { label: "persona", action: "update 1" },
+      });
+      useChatStore.getState().updateStreamingMessage({
+        memoryUpdate: { label: "human", action: "update 2" },
+      });
       expect(useChatStore.getState().messages[0].memoryUpdates).toHaveLength(2);
     });
 
@@ -455,7 +310,9 @@ describe("useChatStore", () => {
         timestamp: new Date().toISOString(),
       };
       useChatStore.setState({ messages: [userMsg] });
-      useChatStore.getState().addMemoryUpdate("persona", "update");
+      useChatStore.getState().updateStreamingMessage({
+        memoryUpdate: { label: "persona", action: "update" },
+      });
       expect(useChatStore.getState().messages[0].memoryUpdates).toBeUndefined();
     });
   });
@@ -586,9 +443,6 @@ describe("useMemoryStore", () => {
     useMemoryStore.setState({
       blocks: [],
       archivalResults: [],
-      activeBlockLabel: null,
-      isEditing: false,
-      editDraft: "",
       archivalQuery: "",
       isLoading: false,
     });
@@ -612,13 +466,10 @@ describe("useMemoryStore", () => {
   ];
 
   describe("initial state", () => {
-    it("has empty blocks, archival, no editing, and not loading", () => {
+    it("has empty blocks, archival, and not loading", () => {
       const state = useMemoryStore.getState();
       expect(state.blocks).toEqual([]);
       expect(state.archivalResults).toEqual([]);
-      expect(state.activeBlockLabel).toBeNull();
-      expect(state.isEditing).toBe(false);
-      expect(state.editDraft).toBe("");
       expect(state.archivalQuery).toBe("");
       expect(state.isLoading).toBe(false);
     });
@@ -643,75 +494,6 @@ describe("useMemoryStore", () => {
       useMemoryStore.getState().setBlocks(sampleBlocks);
       useMemoryStore.getState().setBlocks([]);
       expect(useMemoryStore.getState().blocks).toEqual([]);
-    });
-  });
-
-  describe("setActiveBlock", () => {
-    it("sets the active block label", () => {
-      useMemoryStore.getState().setActiveBlock("persona");
-      expect(useMemoryStore.getState().activeBlockLabel).toBe("persona");
-    });
-
-    it("clears editing state when setting active block", () => {
-      useMemoryStore.setState({ isEditing: true, editDraft: "draft text" });
-      useMemoryStore.getState().setActiveBlock("human");
-      const state = useMemoryStore.getState();
-      expect(state.activeBlockLabel).toBe("human");
-      expect(state.isEditing).toBe(false);
-      expect(state.editDraft).toBe("");
-    });
-
-    it("accepts null to deselect block", () => {
-      useMemoryStore.getState().setActiveBlock("persona");
-      useMemoryStore.getState().setActiveBlock(null);
-      expect(useMemoryStore.getState().activeBlockLabel).toBeNull();
-    });
-  });
-
-  describe("startEditing", () => {
-    it("sets isEditing to true and editDraft from the provided draft", () => {
-      useMemoryStore.getState().startEditing("I am an AI assistant");
-      const state = useMemoryStore.getState();
-      expect(state.isEditing).toBe(true);
-      expect(state.editDraft).toBe("I am an AI assistant");
-    });
-
-    it("works with empty string draft", () => {
-      useMemoryStore.getState().startEditing("");
-      const state = useMemoryStore.getState();
-      expect(state.isEditing).toBe(true);
-      expect(state.editDraft).toBe("");
-    });
-  });
-
-  describe("updateDraft", () => {
-    it("updates the editDraft text", () => {
-      useMemoryStore.getState().startEditing("original");
-      useMemoryStore.getState().updateDraft("modified");
-      expect(useMemoryStore.getState().editDraft).toBe("modified");
-    });
-
-    it("can set draft to empty string", () => {
-      useMemoryStore.setState({ editDraft: "some text" });
-      useMemoryStore.getState().updateDraft("");
-      expect(useMemoryStore.getState().editDraft).toBe("");
-    });
-  });
-
-  describe("cancelEditing", () => {
-    it("clears isEditing and editDraft", () => {
-      useMemoryStore.setState({ isEditing: true, editDraft: "in progress" });
-      useMemoryStore.getState().cancelEditing();
-      const state = useMemoryStore.getState();
-      expect(state.isEditing).toBe(false);
-      expect(state.editDraft).toBe("");
-    });
-
-    it("is safe to call when not editing", () => {
-      useMemoryStore.getState().cancelEditing();
-      const state = useMemoryStore.getState();
-      expect(state.isEditing).toBe(false);
-      expect(state.editDraft).toBe("");
     });
   });
 
@@ -761,42 +543,4 @@ describe("useMemoryStore", () => {
     });
   });
 
-  describe("editing workflow integration", () => {
-    it("supports full edit lifecycle: setActiveBlock -> startEditing -> updateDraft -> cancelEditing", () => {
-      useMemoryStore.getState().setBlocks(sampleBlocks);
-
-      // Select a block
-      useMemoryStore.getState().setActiveBlock("persona");
-      expect(useMemoryStore.getState().activeBlockLabel).toBe("persona");
-
-      // Start editing with the block value
-      useMemoryStore.getState().startEditing("I am an AI assistant");
-      expect(useMemoryStore.getState().isEditing).toBe(true);
-      expect(useMemoryStore.getState().editDraft).toBe("I am an AI assistant");
-
-      // Modify the draft
-      useMemoryStore.getState().updateDraft("I am a helpful AI");
-      expect(useMemoryStore.getState().editDraft).toBe("I am a helpful AI");
-
-      // Cancel editing
-      useMemoryStore.getState().cancelEditing();
-      expect(useMemoryStore.getState().isEditing).toBe(false);
-      expect(useMemoryStore.getState().editDraft).toBe("");
-      // Active block is still selected
-      expect(useMemoryStore.getState().activeBlockLabel).toBe("persona");
-    });
-
-    it("switching active block clears edit state", () => {
-      useMemoryStore.getState().setBlocks(sampleBlocks);
-      useMemoryStore.getState().setActiveBlock("persona");
-      useMemoryStore.getState().startEditing("I am an AI assistant");
-
-      // Switch to different block
-      useMemoryStore.getState().setActiveBlock("human");
-      const state = useMemoryStore.getState();
-      expect(state.activeBlockLabel).toBe("human");
-      expect(state.isEditing).toBe(false);
-      expect(state.editDraft).toBe("");
-    });
-  });
 });

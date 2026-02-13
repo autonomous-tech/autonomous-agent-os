@@ -2,7 +2,7 @@
 // Agent OS -- Library Tests: Validation
 // =============================================================================
 // Tests for the agent configuration validation function.
-// Source: src/lib/export.ts
+// Source: src/lib/validate.ts
 //
 // NOTE: The validateAgent function takes both a config and stages parameter.
 // The config uses the AgentConfig type where `capabilities` is a nested object
@@ -11,7 +11,7 @@
 // =============================================================================
 
 import { describe, it, expect } from 'vitest'
-import { validateAgent } from '@/lib/export'
+import { validateAgent } from '@/lib/validate'
 import { defaultStageData } from '@/lib/types'
 import type { AgentConfig, StageData } from '@/lib/types'
 
@@ -51,9 +51,6 @@ function fullValidConfig(): AgentConfig {
     memory: {
       strategy: 'conversational',
       remember: ['User preferences', 'Previous conversations'],
-      daily_logs: true,
-      curated_memory: true,
-      max_memory_size: '500 lines',
     },
     triggers: {
       triggers: [

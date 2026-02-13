@@ -93,10 +93,7 @@ Return ONLY valid JSON (no markdown, no code fences) with this exact structure:
     },
     "memory": {
       "strategy": "conversational",
-      "remember": ["what to remember"],
-      "daily_logs": true,
-      "curated_memory": true,
-      "max_memory_size": "500 lines"
+      "remember": ["what to remember"]
     },
     "triggers": {
       "triggers": [

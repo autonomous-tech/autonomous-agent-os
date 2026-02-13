@@ -203,3 +203,42 @@ export async function getAgentMemorySnapshot(
     );
   }
 }
+
+/**
+ * Augment a system prompt with the agent's persistent memory from Letta.
+ * Reads persona and scratchpad blocks and appends them to the prompt.
+ *
+ * Gracefully degrades: if Letta is unreachable, returns the original prompt.
+ *
+ * @param systemPrompt - The base system prompt
+ * @param lettaAgentId - The Letta agent ID to read memory from
+ * @returns The system prompt with memory appended
+ */
+export async function hydrateSystemPromptWithMemory(
+  systemPrompt: string,
+  lettaAgentId: string
+): Promise<string> {
+  try {
+    if (!isLettaEnabled() || !lettaClient) {
+      return systemPrompt;
+    }
+
+    const snapshot = await getAgentMemorySnapshot(lettaAgentId);
+
+    if (snapshot.coreBlocks.length === 0) {
+      return systemPrompt;
+    }
+
+    const memorySection = snapshot.coreBlocks
+      .map((block) => `### ${block.label}\n${block.value}`)
+      .join("\n\n");
+
+    return `${systemPrompt}\n\n## Your Persistent Memory\n\n${memorySection}`;
+  } catch (error) {
+    console.error(
+      "[memory] Failed to hydrate system prompt with memory (non-blocking):",
+      error instanceof Error ? error.message : error
+    );
+    return systemPrompt;
+  }
+}

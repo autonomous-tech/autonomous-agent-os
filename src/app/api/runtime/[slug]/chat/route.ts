@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { lettaClient, isLettaEnabled } from "@/lib/letta/client";
+import { isLettaEnabled } from "@/lib/letta/client";
+import { hydrateSystemPromptWithMemory } from "@/lib/letta/memory";
+import { syncSessionMemory } from "@/lib/letta/memory-extract";
 import type { AgentConfig } from "@/lib/types";
 import type { RuntimeMessage } from "@/lib/runtime/types";
 import type { McpServerDefinition } from "@/lib/runtime/tools.types";
@@ -30,52 +32,7 @@ export async function POST(
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
-    // Letta proxy path — if agent has a Letta backend, use it directly
-    if (agent.lettaAgentId && isLettaEnabled() && lettaClient) {
-      const lettaResponse = await lettaClient.agents.messages.create(
-        agent.lettaAgentId,
-        {
-          messages: [{ role: "user", content: message }],
-        }
-      );
-
-      // Extract the assistant response from the Letta message array
-      let responseText = "";
-      if (Array.isArray(lettaResponse)) {
-        // Find the last message with role "assistant" or fall back to the last message's content
-        for (let i = lettaResponse.length - 1; i >= 0; i--) {
-          const msg = lettaResponse[i] as Record<string, unknown>;
-          if (msg.role === "assistant" && msg.content) {
-            responseText = String(msg.content);
-            break;
-          }
-        }
-        // Fallback: use the last message's content if no assistant message found
-        if (!responseText && lettaResponse.length > 0) {
-          const lastMsg = lettaResponse[lettaResponse.length - 1] as Record<string, unknown>;
-          if (lastMsg.content) {
-            responseText = String(lastMsg.content);
-          }
-        }
-      }
-
-      return NextResponse.json({
-        message: {
-          id: `msg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
-          role: "assistant",
-          content: responseText,
-          timestamp: new Date().toISOString(),
-        },
-        session: {
-          token: "letta",
-          turnCount: 0,
-          status: "active",
-          maxTurns: 999,
-        },
-      });
-    }
-
-    // Existing engine path below
+    // All chat goes through the Claude engine
     const deployment = await prisma.deployment.findFirst({
       where: { agentId: agent.id, status: "active" },
     });
@@ -84,6 +41,12 @@ export async function POST(
     }
 
     const config: AgentConfig = JSON.parse(deployment.config);
+
+    // Hydrate system prompt with Letta memory if available
+    let systemPrompt = deployment.systemPrompt;
+    if (agent.lettaAgentId && isLettaEnabled()) {
+      systemPrompt = await hydrateSystemPromptWithMemory(systemPrompt, agent.lettaAgentId);
+    }
 
     // Parse MCP server definitions from the deployment snapshot
     let mcpServers: McpServerDefinition[] = [];
@@ -130,7 +93,7 @@ export async function POST(
 
     // Process the message through the runtime engine
     const result = await processMessage(
-      deployment.systemPrompt,
+      systemPrompt,
       config,
       session.status,
       session.turnCount,
@@ -173,6 +136,17 @@ export async function POST(
           isError: exec.isError,
           durationMs: exec.durationMs,
         })),
+      });
+    }
+
+    // Sync memory to Letta periodically (every 10 turns or at session end)
+    const turnCount = result.sessionUpdates.turnCount;
+    const sessionEnding = result.sessionUpdates.status !== "active";
+    if (agent.lettaAgentId && isLettaEnabled() && (sessionEnding || turnCount % 10 === 0)) {
+      // Fire-and-forget — don't block the response
+      const recentMessages = updatedMessages.slice(-20).map((m) => `${m.role}: ${m.content}`).join("\n");
+      syncSessionMemory(agent.lettaAgentId, { summary: recentMessages }).catch((err) => {
+        console.error("[runtime/chat] Memory sync failed (non-blocking):", err instanceof Error ? err.message : err);
       });
     }
 

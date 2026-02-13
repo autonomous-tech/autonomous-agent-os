@@ -192,9 +192,9 @@ function getFieldNames(stage: StageName): string {
     identity:
       '- "name": agent name\n- "emoji": optional emoji\n- "vibe": personality description\n- "tone": communication tone\n- "greeting": sample greeting',
     capabilities:
-      '- "tools": array of { "name": "...", "access": "read-only|write|full", "description": "..." }\n- "skills": array of { "name": "...", "description": "...", "steps": ["..."] }',
+      '- "tools": array of { "name": "...", "access": "read-only|write|full", "description": "..." }',
     memory:
-      '- "strategy": "conversational|task-based|minimal"\n- "remember": array of what to remember\n- "daily_logs": boolean\n- "curated_memory": boolean\n- "max_memory_size": string',
+      '- "strategy": "conversational|task-based|minimal"\n- "remember": array of what to remember',
     triggers:
       '- "triggers": array of { "type": "message|event|schedule", "description": "...", "channels": ["..."], "source": "..." }',
     guardrails:

@@ -35,9 +35,6 @@ interface TemplateConfig {
   memory?: {
     strategy: string;
     remember: string[];
-    daily_logs: boolean;
-    curated_memory: boolean;
-    max_memory_size: string;
   };
   triggers?: Array<{
     type: string;
@@ -122,9 +119,6 @@ const helixConfig: TemplateConfig = {
       "Resolution history for recurring problems",
       "Product FAQ updates learned from conversations",
     ],
-    daily_logs: true,
-    curated_memory: true,
-    max_memory_size: "500 lines",
   },
   triggers: [
     {
@@ -180,9 +174,6 @@ const helixStages: Record<string, StageEntry> = {
     data: {
       strategy: helixConfig.memory!.strategy,
       remember: helixConfig.memory!.remember,
-      daily_logs: helixConfig.memory!.daily_logs,
-      curated_memory: helixConfig.memory!.curated_memory,
-      max_memory_size: helixConfig.memory!.max_memory_size,
     },
   },
   triggers: {
@@ -261,9 +252,6 @@ const sageConfig: TemplateConfig = {
       "User research preferences and priority topics",
       "Connections and patterns across research topics",
     ],
-    daily_logs: true,
-    curated_memory: true,
-    max_memory_size: "1000 lines",
   },
   triggers: [
     {
@@ -323,9 +311,6 @@ const sageStages: Record<string, StageEntry> = {
     data: {
       strategy: sageConfig.memory!.strategy,
       remember: sageConfig.memory!.remember,
-      daily_logs: sageConfig.memory!.daily_logs,
-      curated_memory: sageConfig.memory!.curated_memory,
-      max_memory_size: sageConfig.memory!.max_memory_size,
     },
   },
   triggers: {
@@ -404,9 +389,6 @@ const scoutConfig: TemplateConfig = {
       "User preferences for outreach style and messaging tone",
       "Competitive intelligence gathered during research",
     ],
-    daily_logs: true,
-    curated_memory: true,
-    max_memory_size: "750 lines",
   },
   triggers: [
     {
@@ -471,9 +453,6 @@ const scoutStages: Record<string, StageEntry> = {
     data: {
       strategy: scoutConfig.memory!.strategy,
       remember: scoutConfig.memory!.remember,
-      daily_logs: scoutConfig.memory!.daily_logs,
-      curated_memory: scoutConfig.memory!.curated_memory,
-      max_memory_size: scoutConfig.memory!.max_memory_size,
     },
   },
   triggers: {

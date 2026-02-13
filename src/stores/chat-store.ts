@@ -5,7 +5,6 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
-  // Streaming-specific
   isStreaming?: boolean;
   reasoning?: string;
   toolCalls?: Array<{
@@ -28,13 +27,15 @@ interface ChatState {
   error: string | null;
 
   // Actions
-  addUserMessage: (content: string) => void;
+  addMessage: (role: 'user' | 'assistant', content: string) => void;
   startStreaming: () => void;
-  appendStreamContent: (content: string) => void;
-  appendStreamReasoning: (content: string) => void;
-  addToolCall: (toolCall: { id: string; name: string; arguments: string }) => void;
-  resolveToolCall: (id: string, result: string, status: 'success' | 'error') => void;
-  addMemoryUpdate: (label: string, action: string) => void;
+  updateStreamingMessage: (update: {
+    content?: string;
+    reasoning?: string;
+    toolCall?: { id: string; name: string; arguments: string };
+    toolResult?: { id: string; result: string; status: 'success' | 'error' };
+    memoryUpdate?: { label: string; action: string };
+  }) => void;
   finishStreaming: (messageId: string) => void;
   setError: (error: string | null) => void;
   clearMessages: () => void;
@@ -49,13 +50,13 @@ export const useChatStore = create<ChatState>((set) => ({
   error: null,
 
   // Actions
-  addUserMessage: (content) =>
+  addMessage: (role, content) =>
     set((state) => ({
       messages: [
         ...state.messages,
         {
           id: crypto.randomUUID(),
-          role: 'user',
+          role,
           content,
           timestamp: new Date().toISOString(),
         },
@@ -70,64 +71,38 @@ export const useChatStore = create<ChatState>((set) => ({
       error: null,
     }),
 
-  appendStreamContent: (content) =>
-    set((state) => ({
-      partialContent: state.partialContent + content,
-    })),
-
-  appendStreamReasoning: (content) =>
+  updateStreamingMessage: (update) =>
     set((state) => {
-      const messages = [...state.messages];
-      const lastMessage = messages[messages.length - 1];
-
-      if (lastMessage && lastMessage.role === 'assistant' && lastMessage.isStreaming) {
-        lastMessage.reasoning = (lastMessage.reasoning || '') + content;
+      if (update.content !== undefined) {
+        return { partialContent: state.partialContent + update.content };
       }
 
-      return { messages };
-    }),
-
-  addToolCall: (toolCall) =>
-    set((state) => {
       const messages = [...state.messages];
       const lastMessage = messages[messages.length - 1];
+      if (!lastMessage || lastMessage.role !== 'assistant' || !lastMessage.isStreaming) {
+        return { messages };
+      }
 
-      if (lastMessage && lastMessage.role === 'assistant' && lastMessage.isStreaming) {
+      if (update.reasoning !== undefined) {
+        lastMessage.reasoning = (lastMessage.reasoning || '') + update.reasoning;
+      }
+      if (update.toolCall) {
         lastMessage.toolCalls = [
           ...(lastMessage.toolCalls || []),
-          { ...toolCall, status: 'pending' as const },
+          { ...update.toolCall, status: 'pending' as const },
         ];
       }
-
-      return { messages };
-    }),
-
-  resolveToolCall: (id, result, status) =>
-    set((state) => {
-      const messages = [...state.messages];
-      const lastMessage = messages[messages.length - 1];
-
-      if (lastMessage && lastMessage.role === 'assistant' && lastMessage.isStreaming) {
-        const toolCalls = lastMessage.toolCalls || [];
-        const toolCall = toolCalls.find((tc) => tc.id === id);
-        if (toolCall) {
-          toolCall.result = result;
-          toolCall.status = status;
+      if (update.toolResult) {
+        const tc = (lastMessage.toolCalls || []).find((t) => t.id === update.toolResult!.id);
+        if (tc) {
+          tc.result = update.toolResult.result;
+          tc.status = update.toolResult.status;
         }
       }
-
-      return { messages };
-    }),
-
-  addMemoryUpdate: (label, action) =>
-    set((state) => {
-      const messages = [...state.messages];
-      const lastMessage = messages[messages.length - 1];
-
-      if (lastMessage && lastMessage.role === 'assistant' && lastMessage.isStreaming) {
+      if (update.memoryUpdate) {
         lastMessage.memoryUpdates = [
           ...(lastMessage.memoryUpdates || []),
-          { label, action },
+          update.memoryUpdate,
         ];
       }
 
@@ -143,7 +118,6 @@ export const useChatStore = create<ChatState>((set) => ({
         lastMessage.isStreaming = false;
         lastMessage.content = state.partialContent;
       } else {
-        // Add new assistant message if one doesn't exist
         messages.push({
           id: messageId,
           role: 'assistant',

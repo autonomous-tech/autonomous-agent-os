@@ -43,9 +43,6 @@ export default async function Home() {
             <h1 className="text-lg font-bold tracking-tight text-zinc-100">Agent OS</h1>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/teams" className="text-sm text-zinc-400 hover:text-zinc-200 transition-colors">
-              Teams
-            </Link>
             <Link href="/agents/new">
               <Button size="sm" className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200">
                 <Plus className="h-4 w-4 mr-1.5" />

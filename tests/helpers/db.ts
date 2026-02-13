@@ -10,8 +10,6 @@ import { prisma } from '@/lib/db'
 import {
   createMockAgentProject,
   createMockTemplate,
-  sampleAgentConfig,
-  sampleStageData,
 } from './fixtures'
 import type { vi as Vi } from 'vitest'
 
@@ -66,28 +64,6 @@ export function getMockedPrisma() {
       findMany: MockedFunction
       create: MockedFunction
       createMany: MockedFunction
-    }
-    agentTeam: {
-      findMany: MockedFunction
-      findUnique: MockedFunction
-      findFirst: MockedFunction
-      create: MockedFunction
-      update: MockedFunction
-      delete: MockedFunction
-    }
-    teamMembership: {
-      findMany: MockedFunction
-      findUnique: MockedFunction
-      create: MockedFunction
-      update: MockedFunction
-      delete: MockedFunction
-    }
-    teamProject: {
-      findMany: MockedFunction
-      findUnique: MockedFunction
-      create: MockedFunction
-      update: MockedFunction
-      delete: MockedFunction
     }
   }
 }
@@ -173,27 +149,6 @@ export function cleanupDb() {
     ;(fn as MockedFunction).mockReset()
   })
 
-  // Reset AgentTeam mocks
-  if (mocked.agentTeam) {
-    Object.values(mocked.agentTeam).forEach((fn) => {
-      ;(fn as MockedFunction).mockReset()
-    })
-  }
-
-  // Reset TeamMembership mocks
-  if (mocked.teamMembership) {
-    Object.values(mocked.teamMembership).forEach((fn) => {
-      ;(fn as MockedFunction).mockReset()
-    })
-  }
-
-  // Reset TeamProject mocks
-  if (mocked.teamProject) {
-    Object.values(mocked.teamProject).forEach((fn) => {
-      ;(fn as MockedFunction).mockReset()
-    })
-  }
-
   // Re-set default resolved values
   mocked.agentProject.findMany.mockResolvedValue([])
   mocked.agentProject.findUnique.mockResolvedValue(null)
@@ -227,30 +182,6 @@ export function cleanupDb() {
   mocked.toolExecutionLog.findMany.mockResolvedValue([])
   mocked.toolExecutionLog.create.mockResolvedValue(null)
   mocked.toolExecutionLog.createMany.mockResolvedValue({ count: 0 })
-
-  // Team models
-  if (mocked.agentTeam) {
-    mocked.agentTeam.findMany.mockResolvedValue([])
-    mocked.agentTeam.findUnique.mockResolvedValue(null)
-    mocked.agentTeam.findFirst.mockResolvedValue(null)
-    mocked.agentTeam.create.mockResolvedValue(null)
-    mocked.agentTeam.update.mockResolvedValue(null)
-    mocked.agentTeam.delete.mockResolvedValue(null)
-  }
-  if (mocked.teamMembership) {
-    mocked.teamMembership.findMany.mockResolvedValue([])
-    mocked.teamMembership.findUnique.mockResolvedValue(null)
-    mocked.teamMembership.create.mockResolvedValue(null)
-    mocked.teamMembership.update.mockResolvedValue(null)
-    mocked.teamMembership.delete.mockResolvedValue(null)
-  }
-  if (mocked.teamProject) {
-    mocked.teamProject.findMany.mockResolvedValue([])
-    mocked.teamProject.findUnique.mockResolvedValue(null)
-    mocked.teamProject.create.mockResolvedValue(null)
-    mocked.teamProject.update.mockResolvedValue(null)
-    mocked.teamProject.delete.mockResolvedValue(null)
-  }
 }
 
 // ---------------------------------------------------------------------------

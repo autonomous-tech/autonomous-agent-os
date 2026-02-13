@@ -1,6 +1,6 @@
 "use client";
 
-import { ChipGroup, BulletList, ToggleRow } from "@/components/preview";
+import { ChipGroup, BulletList } from "@/components/preview";
 import type { MemoryConfig } from "@/lib/types";
 
 interface MemorySectionProps {
@@ -43,22 +43,6 @@ export function MemorySection({
             placeholder="What to remember"
           />
         </div>
-        <div className="space-y-2">
-          <ToggleRow
-            label="Daily logs"
-            checked={(draft.daily_logs as boolean) || false}
-            onChange={(checked) =>
-              onDraftChange({ ...draft, daily_logs: checked })
-            }
-          />
-          <ToggleRow
-            label="Curated memory"
-            checked={(draft.curated_memory as boolean) || false}
-            onChange={(checked) =>
-              onDraftChange({ ...draft, curated_memory: checked })
-            }
-          />
-        </div>
       </div>
     );
   }
@@ -80,18 +64,6 @@ export function MemorySection({
       {config.remember && config.remember.length > 0 && (
         <BulletList items={config.remember} />
       )}
-      <div className="space-y-1">
-        <ToggleRow
-          label="Daily logs"
-          checked={config.daily_logs || false}
-          disabled
-        />
-        <ToggleRow
-          label="Curated memory"
-          checked={config.curated_memory || false}
-          disabled
-        />
-      </div>
     </div>
   );
 }
