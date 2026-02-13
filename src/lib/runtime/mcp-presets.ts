@@ -65,6 +65,20 @@ const PRESET_REGISTRY: Record<string, PresetMeta> = {
       sandbox: { maxExecutionMs: 15000, allowNetwork: false },
     },
   },
+
+  vercel: {
+    label: "Vercel",
+    description:
+      "Vercel platform integration for deployments, domains, and project management (requires VERCEL_TOKEN)",
+    definition: {
+      name: "vercel",
+      transport: "stdio",
+      command: "npx",
+      args: ["-y", "@vercel/mcp-adapter"],
+      env: { VERCEL_TOKEN: "" },
+      sandbox: { maxExecutionMs: 30000, allowNetwork: true },
+    },
+  },
 };
 
 // ── Public API ────────────────────────────────────────────────────────

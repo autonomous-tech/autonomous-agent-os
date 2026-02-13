@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 
 interface AgentCardProps {
@@ -29,6 +30,7 @@ export function AgentCard({
   createdAt,
   slug,
 }: AgentCardProps) {
+  const isDeployed = status === "deployed";
   const date = new Date(createdAt).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -37,24 +39,19 @@ export function AgentCard({
 
   return (
     <Link href={`/agents/${id}`}>
-      <Card className="cursor-pointer transition-colors hover:bg-accent/50">
+      <Card className={`cursor-pointer transition-colors hover:bg-accent/50 ${isDeployed ? "border-l-2 border-l-green-500" : ""}`}>
         <CardContent className="flex items-center justify-between">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-3">
               <span className="text-base font-medium">{name}</span>
-              <Badge variant={statusVariant[status] || "outline"}>
-                {status}
-              </Badge>
-              {status === "deployed" && slug && (
-                <a
-                  href={`/a/${slug}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
+              {isDeployed ? (
+                <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
+                  deployed
+                </Badge>
+              ) : (
+                <Badge variant={statusVariant[status] || "outline"}>
+                  {status}
+                </Badge>
               )}
             </div>
             {description && (
@@ -63,9 +60,26 @@ export function AgentCard({
               </p>
             )}
           </div>
-          <span className="text-sm text-muted-foreground whitespace-nowrap">
-            {date}
-          </span>
+          <div className="flex items-center gap-3">
+            {isDeployed && slug && (
+              <Button
+                size="xs"
+                variant="outline"
+                className="text-green-600 border-green-500/30 hover:bg-green-500/10"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.open(`/a/${slug}`, "_blank");
+                }}
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                Open
+              </Button>
+            )}
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
+              {date}
+            </span>
+          </div>
         </CardContent>
       </Card>
     </Link>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { lettaClient, isLettaEnabled } from "@/lib/letta/client";
 import type { AgentConfig } from "@/lib/types";
 import type { RuntimeMessage } from "@/lib/runtime/types";
 import type { McpServerDefinition } from "@/lib/runtime/tools.types";
@@ -29,6 +30,52 @@ export async function POST(
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
+    // Letta proxy path — if agent has a Letta backend, use it directly
+    if (agent.lettaAgentId && isLettaEnabled() && lettaClient) {
+      const lettaResponse = await lettaClient.agents.messages.create(
+        agent.lettaAgentId,
+        {
+          messages: [{ role: "user", content: message }],
+        }
+      );
+
+      // Extract the assistant response from the Letta message array
+      let responseText = "";
+      if (Array.isArray(lettaResponse)) {
+        // Find the last message with role "assistant" or fall back to the last message's content
+        for (let i = lettaResponse.length - 1; i >= 0; i--) {
+          const msg = lettaResponse[i] as Record<string, unknown>;
+          if (msg.role === "assistant" && msg.content) {
+            responseText = String(msg.content);
+            break;
+          }
+        }
+        // Fallback: use the last message's content if no assistant message found
+        if (!responseText && lettaResponse.length > 0) {
+          const lastMsg = lettaResponse[lettaResponse.length - 1] as Record<string, unknown>;
+          if (lastMsg.content) {
+            responseText = String(lastMsg.content);
+          }
+        }
+      }
+
+      return NextResponse.json({
+        message: {
+          id: `msg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+          role: "assistant",
+          content: responseText,
+          timestamp: new Date().toISOString(),
+        },
+        session: {
+          token: "letta",
+          turnCount: 0,
+          status: "active",
+          maxTurns: 999,
+        },
+      });
+    }
+
+    // Existing engine path below
     const deployment = await prisma.deployment.findFirst({
       where: { agentId: agent.id, status: "active" },
     });

@@ -67,6 +67,28 @@ export function getMockedPrisma() {
       create: MockedFunction
       createMany: MockedFunction
     }
+    agentTeam: {
+      findMany: MockedFunction
+      findUnique: MockedFunction
+      findFirst: MockedFunction
+      create: MockedFunction
+      update: MockedFunction
+      delete: MockedFunction
+    }
+    teamMembership: {
+      findMany: MockedFunction
+      findUnique: MockedFunction
+      create: MockedFunction
+      update: MockedFunction
+      delete: MockedFunction
+    }
+    teamProject: {
+      findMany: MockedFunction
+      findUnique: MockedFunction
+      create: MockedFunction
+      update: MockedFunction
+      delete: MockedFunction
+    }
   }
 }
 
@@ -151,6 +173,27 @@ export function cleanupDb() {
     ;(fn as MockedFunction).mockReset()
   })
 
+  // Reset AgentTeam mocks
+  if (mocked.agentTeam) {
+    Object.values(mocked.agentTeam).forEach((fn) => {
+      ;(fn as MockedFunction).mockReset()
+    })
+  }
+
+  // Reset TeamMembership mocks
+  if (mocked.teamMembership) {
+    Object.values(mocked.teamMembership).forEach((fn) => {
+      ;(fn as MockedFunction).mockReset()
+    })
+  }
+
+  // Reset TeamProject mocks
+  if (mocked.teamProject) {
+    Object.values(mocked.teamProject).forEach((fn) => {
+      ;(fn as MockedFunction).mockReset()
+    })
+  }
+
   // Re-set default resolved values
   mocked.agentProject.findMany.mockResolvedValue([])
   mocked.agentProject.findUnique.mockResolvedValue(null)
@@ -184,6 +227,30 @@ export function cleanupDb() {
   mocked.toolExecutionLog.findMany.mockResolvedValue([])
   mocked.toolExecutionLog.create.mockResolvedValue(null)
   mocked.toolExecutionLog.createMany.mockResolvedValue({ count: 0 })
+
+  // Team models
+  if (mocked.agentTeam) {
+    mocked.agentTeam.findMany.mockResolvedValue([])
+    mocked.agentTeam.findUnique.mockResolvedValue(null)
+    mocked.agentTeam.findFirst.mockResolvedValue(null)
+    mocked.agentTeam.create.mockResolvedValue(null)
+    mocked.agentTeam.update.mockResolvedValue(null)
+    mocked.agentTeam.delete.mockResolvedValue(null)
+  }
+  if (mocked.teamMembership) {
+    mocked.teamMembership.findMany.mockResolvedValue([])
+    mocked.teamMembership.findUnique.mockResolvedValue(null)
+    mocked.teamMembership.create.mockResolvedValue(null)
+    mocked.teamMembership.update.mockResolvedValue(null)
+    mocked.teamMembership.delete.mockResolvedValue(null)
+  }
+  if (mocked.teamProject) {
+    mocked.teamProject.findMany.mockResolvedValue([])
+    mocked.teamProject.findUnique.mockResolvedValue(null)
+    mocked.teamProject.create.mockResolvedValue(null)
+    mocked.teamProject.update.mockResolvedValue(null)
+    mocked.teamProject.delete.mockResolvedValue(null)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -191,24 +258,41 @@ export function cleanupDb() {
 // ---------------------------------------------------------------------------
 
 export function createRequest(
-  method: string,
-  url: string,
+  bodyOrMethod?: unknown | string,
+  url?: string,
   body?: unknown,
   headers?: Record<string, string>
 ): Request {
+  // Handle both old signature (method, url, body, headers) and new signature (body)
+  let method = 'POST'
+  let requestUrl = 'http://test'
+  let requestBody: unknown = undefined
+  let requestHeaders: Record<string, string> = {}
+
+  if (typeof bodyOrMethod === 'string' && url) {
+    // Old signature: createRequest(method, url, body, headers)
+    method = bodyOrMethod
+    requestUrl = url
+    requestBody = body
+    requestHeaders = headers || {}
+  } else {
+    // New signature: createRequest(body)
+    requestBody = bodyOrMethod
+  }
+
   const init: RequestInit = {
     method,
     headers: {
       'Content-Type': 'application/json',
-      ...headers,
+      ...requestHeaders,
     },
   }
 
-  if (body && method !== 'GET') {
-    init.body = JSON.stringify(body)
+  if (requestBody && method !== 'GET') {
+    init.body = JSON.stringify(requestBody)
   }
 
-  return new Request(url, init)
+  return new Request(requestUrl, init)
 }
 
 // ---------------------------------------------------------------------------

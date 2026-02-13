@@ -12,6 +12,14 @@ import {
 } from "@/components/ui/collapsible";
 import { TestChat } from "@/components/builder/TestChat";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Play,
   Download,
   Loader2,
@@ -24,6 +32,7 @@ import {
   ExternalLink,
   RefreshCw,
   Wrench,
+  Copy,
 } from "lucide-react";
 import {
   MissionSection,
@@ -139,6 +148,10 @@ interface PreviewPaneProps {
   onPause?: () => void;
   onResume?: () => void;
   isDeploying?: boolean;
+  showDeploySuccess?: boolean;
+  onDeploySuccessDismiss?: () => void;
+  deployedUrl?: string;
+  deployError?: string | null;
 }
 
 export function PreviewPane({
@@ -155,10 +168,15 @@ export function PreviewPane({
   onPause,
   onResume,
   isDeploying,
+  showDeploySuccess,
+  onDeploySuccessDismiss,
+  deployedUrl,
+  deployError,
 }: PreviewPaneProps) {
   const [showTestChat, setShowTestChat] = useState(false);
   const [editingSection, setEditingSection] = useState<StageName | null>(null);
   const [draft, setDraft] = useState<Record<string, unknown>>({});
+  const [copied, setCopied] = useState(false);
   const [mcpServers, setMcpServers] = useState<Array<{id: string; name: string; transport: string; status: string}>>([]);
 
   useEffect(() => {
@@ -423,6 +441,9 @@ export function PreviewPane({
 
       {/* Action buttons */}
       <div className="border-t p-4 flex flex-col gap-2">
+        {deployError && (
+          <p className="text-xs text-destructive px-1">{deployError}</p>
+        )}
         {deployment?.status === "active" && agentSlug && (
           <div className="flex items-center justify-between px-1 pb-1">
             <div className="flex items-center gap-2">
@@ -509,6 +530,50 @@ export function PreviewPane({
           </Button>
         </div>
       </div>
+
+      {/* Deploy success dialog */}
+      <Dialog open={!!showDeploySuccess} onOpenChange={(open) => { if (!open) onDeploySuccessDismiss?.(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
+              Agent Deployed
+            </DialogTitle>
+            <DialogDescription>
+              Your agent is now live and accessible at the URL below.
+            </DialogDescription>
+          </DialogHeader>
+          {deployedUrl && (
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded-md bg-muted px-3 py-2 text-sm font-mono truncate">
+                {deployedUrl}
+              </code>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(deployedUrl);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+              >
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onDeploySuccessDismiss?.()}>
+              Close
+            </Button>
+            {deployedUrl && (
+              <Button onClick={() => window.open(deployedUrl, "_blank")}>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open Agent
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

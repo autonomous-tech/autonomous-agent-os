@@ -60,6 +60,28 @@ vi.mock('@/lib/db', () => {
       create: vi.fn().mockResolvedValue(null),
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
+    agentTeam: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findFirst: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue(null),
+      update: vi.fn().mockResolvedValue(null),
+      delete: vi.fn().mockResolvedValue(null),
+    },
+    teamMembership: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue(null),
+      update: vi.fn().mockResolvedValue(null),
+      delete: vi.fn().mockResolvedValue(null),
+    },
+    teamProject: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue(null),
+      update: vi.fn().mockResolvedValue(null),
+      delete: vi.fn().mockResolvedValue(null),
+    },
   }
 
   return { prisma: mockPrisma }

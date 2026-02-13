@@ -1,0 +1,35 @@
+services:
+  letta-postgres:
+    image: postgres:16-alpine
+    container_name: letta-postgres
+    environment:
+      POSTGRES_USER: letta
+      POSTGRES_PASSWORD: letta
+      POSTGRES_DB: letta
+    volumes:
+      - letta-pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U letta"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  letta-server:
+    image: letta/letta:latest
+    container_name: letta-server
+    ports:
+      - "8283:8283"
+    environment:
+      LETTA_PG_URI: postgresql://letta:letta@letta-postgres:5432/letta
+      LETTA_SERVER_PASSWORD: ${LETTA_SERVER_PASSWORD:-letta}
+    depends_on:
+      letta-postgres:
+        condition: service_healthy
+    volumes:
+      - letta-data:/root/.letta
+
+volumes:
+  letta-pgdata:
+  letta-data:

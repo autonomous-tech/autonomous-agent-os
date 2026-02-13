@@ -4,6 +4,11 @@ import type { AgentConfig, StageData } from "@/lib/types";
 import { validateAgent } from "@/lib/export";
 import { buildRuntimeSystemPrompt } from "@/lib/runtime/prompt";
 import { rowToDefinition } from "@/lib/mcp-helpers";
+import { lettaClient, isLettaEnabled } from "@/lib/letta/client";
+import { translateToLettaParams, buildMemoryCategorizationPrompt } from "@/lib/letta/translate";
+import { loadSkillsDirectory } from "@/lib/letta/skills";
+import path from "path";
+import fs from "fs/promises";
 
 // POST /api/agents/[id]/deploy — Deploy an agent
 export async function POST(
@@ -76,6 +81,48 @@ export async function POST(
       data: { status: "deployed" },
     });
 
+    // Side-deploy to Letta if enabled and agent doesn't have a Letta agent yet
+    let lettaAgentId: string | null = agent.lettaAgentId;
+    if (isLettaEnabled() && lettaClient && !agent.lettaAgentId) {
+      try {
+        const params = translateToLettaParams(agent.name, config);
+        const memPrompt = buildMemoryCategorizationPrompt();
+
+        const lettaAgent = await lettaClient.agents.create({
+          name: params.name,
+          description: params.description,
+          system: params.system + "\n\n" + memPrompt,
+          model: params.model,
+          embedding: params.embedding,
+          memory_blocks: params.memoryBlocks.map((b) => ({
+            label: b.label,
+            value: b.value,
+            limit: b.limit ?? 5000,
+          })),
+        });
+
+        lettaAgentId = lettaAgent.id;
+        await prisma.agentProject.update({
+          where: { id },
+          data: { lettaAgentId: lettaAgent.id },
+        });
+
+        // Load skills if directory exists
+        const skillsDir = path.join(process.cwd(), "skills");
+        try {
+          await fs.access(skillsDir);
+          await loadSkillsDirectory(lettaAgent.id, skillsDir);
+        } catch {
+          // skills/ directory doesn't exist — skip
+        }
+      } catch (lettaError) {
+        console.error(
+          "[deploy] Letta side-deploy failed (non-blocking):",
+          lettaError instanceof Error ? lettaError.message : lettaError
+        );
+      }
+    }
+
     return NextResponse.json({
       deployment: {
         id: deployment.id,
@@ -84,6 +131,7 @@ export async function POST(
         createdAt: deployment.createdAt,
       },
       publicUrl: `/a/${agent.slug}`,
+      ...(lettaAgentId ? { lettaAgentId } : {}),
     });
   } catch (error) {
     console.error("Deploy error:", error instanceof Error ? error.message : "Unknown error");

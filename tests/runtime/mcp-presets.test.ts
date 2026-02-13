@@ -2,13 +2,14 @@ import { describe, it, expect } from 'vitest'
 import { MCP_PRESETS, getPreset, listPresets } from '@/lib/runtime/mcp-presets'
 
 describe('MCP_PRESETS', () => {
-  it('has all 4 expected keys', () => {
+  it('has all 5 expected keys', () => {
     const keys = Object.keys(MCP_PRESETS)
-    expect(keys).toHaveLength(4)
+    expect(keys).toHaveLength(5)
     expect(keys).toContain('filesystem')
     expect(keys).toContain('jiraCloud')
     expect(keys).toContain('browser')
     expect(keys).toContain('git')
+    expect(keys).toContain('vercel')
   })
 
   it('each preset has required fields (name, transport, command)', () => {
@@ -94,10 +95,10 @@ describe('getPreset', () => {
 })
 
 describe('listPresets', () => {
-  it('returns array with 4 entries', () => {
+  it('returns array with 5 entries', () => {
     const presets = listPresets()
     expect(Array.isArray(presets)).toBe(true)
-    expect(presets).toHaveLength(4)
+    expect(presets).toHaveLength(5)
   })
 
   it('entries have key, name, description fields', () => {
