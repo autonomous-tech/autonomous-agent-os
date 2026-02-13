@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent OS - Architecture &amp; Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --autonomous-black: #0a0a0a;
+      --autonomous-white: #fafafa;
+      --autonomous-purple: #8b5cf6;
+      --autonomous-purple-dark: #6d28d9;
+      --autonomous-purple-light: #a78bfa;
+      --gray-50: #fafafa;
+      --gray-100: #f4f4f5;
+      --gray-200: #e4e4e7;
+      --gray-300: #d4d4d8;
+      --gray-400: #a1a1aa;
+      --gray-500: #71717a;
+      --gray-600: #52525b;
+      --gray-700: #3f3f46;
+      --gray-800: #27272a;
+      --gray-900: #18181b;
+      --gray-950: #09090b;
+      --accent-blue: #3b82f6;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--autonomous-black);
+      color: var(--gray-100);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    code, pre, .mono {
+      font-family: 'Fira Code', 'JetBrains Mono', 'Menlo', 'Monaco', monospace;
+    }
+
+    /* ---- Navigation ---- */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      background: rgba(10, 10, 10, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--gray-800);
+      padding: 0 2rem;
+    }
+    nav .inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    nav .logo {
+      font-weight: 700;
+      font-size: 1.125rem;
+      color: var(--autonomous-white);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    nav .logo .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--autonomous-purple);
+    }
+    nav .nav-links {
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+    }
+    nav .nav-links a {
+      color: var(--gray-400);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    nav .nav-links a:hover { color: var(--gray-100); }
+
+    /* ---- Hero ---- */
+    .hero {
+      padding: 8rem 2rem 4rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 600px;
+      background: radial-gradient(ellipse, rgba(139, 92, 246, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--autonomous-white);
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    .hero h1 span { color: var(--autonomous-purple); }
+    .hero p {
+      font-size: 1.125rem;
+      color: var(--gray-400);
+      max-width: 640px;
+      margin: 0 auto 2rem;
+      position: relative;
+    }
+    .hero .stats {
+      display: flex;
+      justify-content: center;
+      gap: 3rem;
+      position: relative;
+    }
+    .hero .stat {
+      text-align: center;
+    }
+    .hero .stat .number {
+      font-size: 2.25rem;
+      font-weight: 700;
+      color: var(--autonomous-purple-light);
+    }
+    .hero .stat .label {
+      font-size: 0.75rem;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ---- Sections ---- */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+    section { padding: 4rem 0; }
+    section + section { border-top: 1px solid var(--gray-900); }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--autonomous-purple);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.5rem;
+    }
+    .section-title {
+      font-size: 1.875rem;
+      font-weight: 600;
+      color: var(--autonomous-white);
+      margin-bottom: 1rem;
+    }
+    .section-desc {
+      color: var(--gray-400);
+      max-width: 640px;
+      margin-bottom: 2rem;
+    }
+
+    /* ---- Grid layouts ---- */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1.5rem;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 768px) {
+      .grid-2, .grid-3, .grid-4 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ---- Cards ---- */
+    .card {
+      background: var(--gray-900);
+      border: 1px solid var(--gray-800);
+      border-radius: 8px;
+      padding: 1.5rem;
+      transition: border-color 0.2s;
+    }
+    .card:hover { border-color: var(--gray-700); }
+    .card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--gray-100);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card p {
+      font-size: 0.875rem;
+      color: var(--gray-400);
+      line-height: 1.5;
+    }
+    .card .icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      margin-bottom: 0.75rem;
+      flex-shrink: 0;
+    }
+    .icon-purple { background: rgba(139, 92, 246, 0.15); color: var(--autonomous-purple-light); }
+    .icon-blue { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); }
+    .icon-green { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+    .icon-amber { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); }
+    .icon-red { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+
+    /* ---- Architecture diagram ---- */
+    .arch-diagram {
+      background: var(--gray-950);
+      border: 1px solid var(--gray-800);
+      border-radius: 12px;
+      padding: 2rem;
+      overflow-x: auto;
+      margin: 1.5rem 0;
+    }
+    .arch-diagram pre {
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      color: var(--gray-300);
+      white-space: pre;
+    }
+    .arch-diagram .hl { color: var(--autonomous-purple-light); }
+    .arch-diagram .cm { color: var(--gray-600); }
+    .arch-diagram .kw { color: var(--accent-blue); }
+    .arch-diagram .st { color: var(--accent-green); }
+
+    /* ---- Badges ---- */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .badge-purple { background: rgba(139, 92, 246, 0.15); color: var(--autonomous-purple-light); border: 1px solid rgba(139, 92, 246, 0.3); }
+    .badge-green { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-blue { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); border: 1px solid rgba(59, 130, 246, 0.3); }
+    .badge-amber { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.3); }
+
+    /* ---- Memory table ---- */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      border-bottom: 1px solid var(--gray-800);
+    }
+    th {
+      color: var(--gray-400);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    td { color: var(--gray-300); }
+    td code {
+      background: var(--gray-800);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.8125rem;
+      color: var(--autonomous-purple-light);
+    }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* ---- Phase timeline ---- */
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .timeline-item {
+      display: flex;
+      gap: 1.5rem;
+      padding: 1.5rem 0;
+      border-bottom: 1px solid var(--gray-900);
+    }
+    .timeline-item:last-child { border-bottom: none; }
+    .timeline-marker {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.875rem;
+      flex-shrink: 0;
+    }
+    .marker-done { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 2px solid rgba(16, 185, 129, 0.4); }
+    .marker-current { background: rgba(139, 92, 246, 0.15); color: var(--autonomous-purple-light); border: 2px solid rgba(139, 92, 246, 0.4); }
+    .marker-pending { background: var(--gray-900); color: var(--gray-600); border: 2px solid var(--gray-800); }
+    .timeline-content h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--gray-100);
+      margin-bottom: 0.25rem;
+    }
+    .timeline-content p {
+      font-size: 0.875rem;
+      color: var(--gray-400);
+      margin-bottom: 0.5rem;
+    }
+    .timeline-content .file-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .file-tag {
+      font-size: 0.6875rem;
+      font-family: 'Fira Code', monospace;
+      background: var(--gray-900);
+      border: 1px solid var(--gray-800);
+      border-radius: 4px;
+      padding: 2px 6px;
+      color: var(--gray-400);
+    }
+
+    /* ---- Route list ---- */
+    .route-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .route-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.625rem 1rem;
+      border-bottom: 1px solid var(--gray-900);
+      font-size: 0.875rem;
+    }
+    .route-method {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      min-width: 52px;
+      text-align: center;
+    }
+    .method-get { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); }
+    .method-post { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+    .method-patch { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); }
+    .method-delete { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+    .method-sse { background: rgba(139, 92, 246, 0.15); color: var(--autonomous-purple-light); }
+    .route-path {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.8125rem;
+      color: var(--gray-300);
+    }
+    .route-desc {
+      color: var(--gray-500);
+      font-size: 0.8125rem;
+      margin-left: auto;
+    }
+
+    /* ---- Test summary ---- */
+    .test-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .test-card {
+      background: var(--gray-950);
+      border: 1px solid var(--gray-800);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    .test-card h4 {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--gray-300);
+      margin-bottom: 0.5rem;
+      font-family: 'Fira Code', monospace;
+    }
+    .test-card .count {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent-green);
+    }
+
+    /* ---- Footer ---- */
+    footer {
+      padding: 2rem;
+      text-align: center;
+      border-top: 1px solid var(--gray-900);
+      margin-top: 2rem;
+    }
+    footer p {
+      font-size: 0.75rem;
+      color: var(--gray-600);
+    }
+
+    /* ---- Utility ---- */
+    .mt-1 { margin-top: 0.5rem; }
+    .mt-2 { margin-top: 1rem; }
+    .mt-3 { margin-top: 1.5rem; }
+    .mb-1 { margin-bottom: 0.5rem; }
+    .mb-2 { margin-bottom: 1rem; }
+    .text-sm { font-size: 0.875rem; }
+    .text-xs { font-size: 0.75rem; }
+    .text-muted { color: var(--gray-500); }
+    .text-purple { color: var(--autonomous-purple-light); }
+    .flex { display: flex; }
+    .gap-1 { gap: 0.5rem; }
+    .gap-2 { gap: 1rem; }
+    .items-center { align-items: center; }
+    .flex-wrap { flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+  <div class="inner">
+    <div class="logo"><span class="dot"></span> Agent OS</div>
+    <ul class="nav-links">
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#memory">Memory</a></li>
+      <li><a href="#routes">API Routes</a></li>
+      <li><a href="#frontend">Frontend</a></li>
+      <li><a href="#phases">Phases</a></li>
+      <li><a href="#tests">Tests</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <h1>Agent <span>OS</span></h1>
+  <p>A project workspace where you work with AI agent teams on real projects. Agents get better over time through persistent, self-editing memory.</p>
+  <div class="stats">
+    <div class="stat"><div class="number">61</div><div class="label">Files changed</div></div>
+    <div class="stat"><div class="number">12,944</div><div class="label">Lines added</div></div>
+    <div class="stat"><div class="number">519</div><div class="label">Tests passing</div></div>
+    <div class="stat"><div class="number">33</div><div class="label">API routes</div></div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Architecture -->
+  <section id="architecture">
+    <div class="section-label">System design</div>
+    <h2 class="section-title">Architecture</h2>
+    <p class="section-desc">Hybrid architecture: Next.js handles the builder UI, workspace, and API proxy layer. Letta (MemGPT) provides the agent execution runtime with self-editing memory.</p>
+
+    <div class="arch-diagram">
+      <pre><span class="cm">┌─────────────────────────────────────────────────────────┐</span>
+<span class="cm">│</span>  <span class="hl">Next.js (Port 3000)</span>                                    <span class="cm">│</span>
+<span class="cm">│</span>                                                         <span class="cm">│</span>
+<span class="cm">│</span>  <span class="kw">Builder:</span>   Agent creation (quick-create + guided mode)  <span class="cm">│</span>
+<span class="cm">│</span>  <span class="kw">Workspace:</span> Chat, memory inspector, tools, artifacts    <span class="cm">│</span>
+<span class="cm">│</span>  <span class="kw">Teams:</span>     Team config, shared memory, activity feed    <span class="cm">│</span>
+<span class="cm">│</span>  <span class="kw">Proxy:</span>     All Letta calls go through API routes        <span class="cm">│</span>
+<span class="cm">└────────────────────────┬────────────────────────────────┘</span>
+                         <span class="cm">│</span> <span class="st">@letta-ai/letta-client (TS SDK)</span>
+                         <span class="cm">▼</span>
+<span class="cm">┌─────────────────────────────────────────────────────────┐</span>
+<span class="cm">│</span>  <span class="hl">Letta Server (Docker, Port 8283)</span>                       <span class="cm">│</span>
+<span class="cm">│</span>                                                         <span class="cm">│</span>
+<span class="cm">│</span>  <span class="kw">Per-agent:</span>  persona + scratchpad core blocks            <span class="cm">│</span>
+<span class="cm">│</span>  <span class="kw">Per-team:</span>   shared blocks (project, decisions, tasks)   <span class="cm">│</span>
+<span class="cm">│</span>  <span class="kw">Archival:</span>   skills, artifacts, learned knowledge        <span class="cm">│</span>
+<span class="cm">│</span>  <span class="kw">Recall:</span>     full conversation history                   <span class="cm">│</span>
+<span class="cm">│</span>  <span class="kw">MCP:</span>        connects to external tool servers             <span class="cm">│</span>
+<span class="cm">└────────────────────────┬────────────────────────────────┘</span>
+                         <span class="cm">│</span>
+<span class="cm">┌────────────┬───────────┼───────────┬────────────────────┐</span>
+<span class="cm">│</span> <span class="st">Filesystem</span> <span class="cm">│</span>    <span class="st">Git</span>    <span class="cm">│</span>  <span class="st">Vercel</span>   <span class="cm">│</span>    <span class="st">Browser</span>         <span class="cm">│</span>
+<span class="cm">│</span> MCP Server <span class="cm">│</span> MCP Server<span class="cm">│</span> MCP Server<span class="cm">│</span>    MCP Server      <span class="cm">│</span>
+<span class="cm">└────────────┴───────────┴───────────┴────────────────────┘</span></pre>
+    </div>
+
+    <div class="grid-3 mt-3">
+      <div class="card">
+        <div class="icon icon-purple">N</div>
+        <h3>Next.js 16</h3>
+        <p>App Router with React 19, TailwindCSS 4, Shadcn/ui. Dynamic route params as Promises. 33 compiled routes.</p>
+      </div>
+      <div class="card">
+        <div class="icon icon-blue">L</div>
+        <h3>Letta (MemGPT)</h3>
+        <p>Self-editing memory agent runtime. Core + archival + recall memory. Shared blocks for team coordination. MCP tool support.</p>
+      </div>
+      <div class="card">
+        <div class="icon icon-green">D</div>
+        <h3>Docker + Postgres</h3>
+        <p>Letta server and Postgres run via docker-compose. SQLite for Next.js app data. Prisma 7 ORM with adapter.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Memory Architecture -->
+  <section id="memory">
+    <div class="section-label">Core concept</div>
+    <h2 class="section-title">Memory architecture</h2>
+    <p class="section-desc">Three memory scopes give agents persistent learning that survives across sessions and projects.</p>
+
+    <div class="grid-3 mt-2">
+      <div class="card">
+        <div class="icon icon-purple">G</div>
+        <h3>Global memory</h3>
+        <p>Per-agent, survives across projects. Stored in agent's archival memory and persona block. General expertise, cross-project learnings, user preferences.</p>
+      </div>
+      <div class="card">
+        <div class="icon icon-blue">P</div>
+        <h3>Project memory</h3>
+        <p>Shared across team, scoped to project. Four shared Letta blocks attached to all team agents. Project brief, decisions, task board, brand guide.</p>
+      </div>
+      <div class="card">
+        <div class="icon icon-green">S</div>
+        <h3>Session memory</h3>
+        <p>Per conversation, ephemeral. Letta's recall memory handles conversation history automatically. Context for the current interaction.</p>
+      </div>
+    </div>
+
+    <h3 class="mt-3 mb-1" style="font-size:1.125rem; font-weight:600; color:var(--gray-100);">Letta memory block layout per agent</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Block</th>
+          <th>Scope</th>
+          <th>Shared?</th>
+          <th>Purpose</th>
+          <th>Limit</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>persona</code></td>
+          <td>Agent</td>
+          <td>No</td>
+          <td>Identity, tone, expertise boundaries</td>
+          <td>5,000</td>
+        </tr>
+        <tr>
+          <td><code>scratchpad</code></td>
+          <td>Agent</td>
+          <td>No</td>
+          <td>Working notes, drafts, internal reasoning</td>
+          <td>5,000</td>
+        </tr>
+        <tr>
+          <td><code>project</code></td>
+          <td>Team</td>
+          <td>Yes (read-only)</td>
+          <td>Project brief, current status, key context</td>
+          <td>2,000</td>
+        </tr>
+        <tr>
+          <td><code>decisions</code></td>
+          <td>Team</td>
+          <td>Yes</td>
+          <td>Design decisions, rationale, approvals</td>
+          <td>8,000</td>
+        </tr>
+        <tr>
+          <td><code>task_board</code></td>
+          <td>Team</td>
+          <td>Yes</td>
+          <td>Task assignments, statuses, blockers</td>
+          <td>6,000</td>
+        </tr>
+        <tr>
+          <td><code>brand</code></td>
+          <td>Team</td>
+          <td>Yes (read-only)</td>
+          <td>Brand guidelines loaded from skill</td>
+          <td>10,000</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 class="mt-3 mb-1" style="font-size:1.125rem; font-weight:600; color:var(--gray-100);">Memory categorization</h3>
+    <p class="text-sm text-muted mb-2">Agents are prompted to categorize what they learn into three buckets:</p>
+    <div class="grid-3">
+      <div class="card">
+        <h3><span class="badge badge-purple">Project-specific</span></h3>
+        <p>Facts about THIS project go to the shared <code>decisions</code> block so the whole team sees them.</p>
+      </div>
+      <div class="card">
+        <h3><span class="badge badge-green">User preference</span></h3>
+        <p>General preferences (e.g. "Riz likes dark themes") go to the agent's <code>persona</code> block and persist forever.</p>
+      </div>
+      <div class="card">
+        <h3><span class="badge badge-blue">Craft knowledge</span></h3>
+        <p>Expertise refinements go to the agent's archival memory, searchable across future projects.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- API Routes -->
+  <section id="routes">
+    <div class="section-label">Backend</div>
+    <h2 class="section-title">API routes</h2>
+    <p class="section-desc">All Letta calls are proxied through Next.js API routes to keep credentials server-side. The app has 33 compiled routes.</p>
+
+    <h3 class="mb-1" style="font-size:1rem; font-weight:600; color:var(--gray-300);">Agent CRUD &amp; builder</h3>
+    <div class="route-list card" style="padding: 0; overflow: hidden;">
+      <div class="route-item"><span class="route-method method-get">GET</span><span class="route-path">/api/agents</span><span class="route-desc">List all agents</span></div>
+      <div class="route-item"><span class="route-method method-post">POST</span><span class="route-path">/api/agents</span><span class="route-desc">Create agent with AI inference</span></div>
+      <div class="route-item"><span class="route-method method-get">GET</span><span class="route-path">/api/agents/[id]</span><span class="route-desc">Get agent details</span></div>
+      <div class="route-item"><span class="route-method method-patch">PATCH</span><span class="route-path">/api/agents/[id]</span><span class="route-desc">Update agent config</span></div>
+      <div class="route-item"><span class="route-method method-delete">DEL</span><span class="route-path">/api/agents/[id]</span><span class="route-desc">Delete agent</span></div>
+      <div class="route-item"><span class="route-method method-post">POST</span><span class="route-path">/api/chat</span><span class="route-desc">Builder conversation</span></div>
+      <div class="route-item"><span class="route-method method-post">POST</span><span class="route-path">/api/test</span><span class="route-desc">Test sandbox (role-play)</span></div>
+      <div class="route-item"><span class="route-method method-post">POST</span><span class="route-path">/api/export</span><span class="route-desc">Export ZIP</span></div>
+    </div>
+
+    <h3 class="mt-3 mb-1" style="font-size:1rem; font-weight:600; color:var(--gray-300);">Deployment &amp; runtime</h3>
+    <div class="route-list card" style="padding: 0; overflow: hidden;">
+      <div class="route-item"><span class="route-method method-post">POST</span><span class="route-path">/api/agents/[id]/deploy</span><span class="route-desc">Deploy + Letta side-deploy</span></div>
+      <div class="route-item"><span class="route-method method-get">GET</span><span class="route-path">/api/agents/[id]/deploy</span><span class="route-desc">Deployment status</span></div>
+      <div class="route-item"><span class="route-method method-delete">DEL</span><span class="route-path">/api/agents/[id]/deploy</span><span class="route-desc">Pause deployment</span></div>
+      <div class="route-item"><span class="route-method method-patch">PATCH</span><span class="route-path">/api/agents/[id]/deploy</span><span class="route-desc">Resume deployment</span></div>
+      <div class="route-item"><span class="route-method method-post">POST</span><span class="route-path">/api/runtime/[slug]/chat</span><span class="route-desc">Runtime chat (Letta or Claude)</span></div>
+      <div class="route-item"><span class="route-method method-get">GET</span><span class="route-path">/api/runtime/[slug]</span><span class="route-desc">Runtime agent info</span></div>
+    </div>
+
+    <h3 class="mt-3 mb-1" style="font-size:1rem; font-weight:600; color:var(--gray-300);">Letta proxy</h3>
+    <div class="route-list card" style="padding: 0; overflow: hidden;">
+      <div class="route-item"><span class="route-method method-get">GET</span><span class="route-path">/api/letta/agents/[lettaId]/memory</span><span class="route-desc">List memory blocks</span></div>
+      <div class="route-item"><span class="route-method method-get">GET</span><span class="route-path">/api/letta/agents/[lettaId]/memory/[label]</span><span class="route-desc">Get specific block</span></div>
+      <div class="route-item"><span class="route-method method-patch">PUT</span><span class="route-path">/api/letta/agents/[lettaId]/memory/[label]</span><span class="route-desc">Update block value</span></div>
+      <div class="route-item"><span class="route-method method-get">GET</span><span class="route-path">/api/letta/agents/[lettaId]/archival</span><span class="route-desc">Search/list archival memory</span></div>
+      <div class="route-item"><span class="route-method method-post">POST</span><span class="route-path">/api/letta/agents/[lettaId]/archival</span><span class="route-desc">Insert archival passage</span></div>
+      <div class="route-item"><span class="route-method method-sse">SSE</span><span class="route-path">/api/letta/agents/[lettaId]/messages/stream</span><span class="route-desc">Streaming chat</span></div>
+    </div>
+
+    <h3 class="mt-3 mb-1" style="font-size:1rem; font-weight:600; color:var(--gray-300);">Teams</h3>
+    <div class="route-list card" style="padding: 0; overflow: hidden;">
+      <div class="route-item"><span class="route-method method-get">GET</span><span class="route-path">/api/teams</span><span class="route-desc">List teams</span></div>
+      <div class="route-item"><span class="route-method method-post">POST</span><span class="route-path">/api/teams</span><span class="route-desc">Create team</span></div>
+      <div class="route-item"><span class="route-method method-get">GET</span><span class="route-path">/api/teams/[id]</span><span class="route-desc">Get team details</span></div>
+      <div class="route-item"><span class="route-method method-patch">PATCH</span><span class="route-path">/api/teams/[id]</span><span class="route-desc">Update team</span></div>
+      <div class="route-item"><span class="route-method method-delete">DEL</span><span class="route-path">/api/teams/[id]</span><span class="route-desc">Delete team</span></div>
+      <div class="route-item"><span class="route-method method-post">POST</span><span class="route-path">/api/teams/[id]/deploy</span><span class="route-desc">Deploy team to Letta</span></div>
+      <div class="route-item"><span class="route-method method-post">POST</span><span class="route-path">/api/teams/[id]/members</span><span class="route-desc">Add member</span></div>
+      <div class="route-item"><span class="route-method method-delete">DEL</span><span class="route-path">/api/teams/[id]/members</span><span class="route-desc">Remove member</span></div>
+      <div class="route-item"><span class="route-method method-post">POST</span><span class="route-path">/api/teams/[id]/projects</span><span class="route-desc">Create project</span></div>
+      <div class="route-item"><span class="route-method method-get">GET</span><span class="route-path">/api/teams/[id]/projects</span><span class="route-desc">List projects</span></div>
+    </div>
+  </section>
+
+  <!-- Frontend -->
+  <section id="frontend">
+    <div class="section-label">UI</div>
+    <h2 class="section-title">Frontend architecture</h2>
+    <p class="section-desc">Workspace-first design. From "configure an agent" to "work with agents on real projects."</p>
+
+    <h3 class="mb-1" style="font-size:1.125rem; font-weight:600; color:var(--gray-100);">Pages</h3>
+    <div class="grid-2">
+      <div class="card">
+        <h3><code>/</code></h3>
+        <p>Dashboard. Agent grid with activity indicators and quick-create cards.</p>
+      </div>
+      <div class="card">
+        <h3><code>/agents/[id]</code></h3>
+        <p>Agent workspace. Tabbed: Chat | Memory | Tools | Artifacts | Settings. 3-pane layout with nav rail.</p>
+      </div>
+      <div class="card">
+        <h3><code>/teams</code></h3>
+        <p>Team list. Cards with member counts, status badges, and quick-create.</p>
+      </div>
+      <div class="card">
+        <h3><code>/teams/[id]</code></h3>
+        <p>Team workspace. Agent tabs, shared memory panel, projects, activity feed.</p>
+      </div>
+      <div class="card">
+        <h3><code>/teams/new</code></h3>
+        <p>Create team. Name, description, load and select agents as members.</p>
+      </div>
+      <div class="card">
+        <h3><code>/a/[slug]</code></h3>
+        <p>Public agent interface. Deployed agents accessible by slug URL.</p>
+      </div>
+    </div>
+
+    <h3 class="mt-3 mb-1" style="font-size:1.125rem; font-weight:600; color:var(--gray-100);">Workspace layout</h3>
+    <div class="arch-diagram">
+      <pre><span class="cm">┌──────┬──────────────────────────┬──────────────────┐</span>
+<span class="cm">│</span> <span class="hl">Nav</span>  <span class="cm">│</span>  Agent Header  [Settings]<span class="cm">│</span>                  <span class="cm">│</span>
+<span class="cm">│</span> <span class="hl">Rail</span> <span class="cm">│</span>  <span class="kw">[Chat]</span>[Memory][Tools]   <span class="cm">│</span>                  <span class="cm">│</span>
+<span class="cm">│</span>      <span class="cm">│</span>  [Artifacts][Settings]   <span class="cm">│</span>                  <span class="cm">│</span>
+<span class="cm">│</span> Logo <span class="cm">├──────────────────────────┤</span>  <span class="st">Right Panel</span>     <span class="cm">│</span>
+<span class="cm">│</span>      <span class="cm">│</span>                          <span class="cm">│</span>  (context:       <span class="cm">│</span>
+<span class="cm">│</span> Agent<span class="cm">│</span>  Active Tab Content      <span class="cm">│</span>   memory blocks, <span class="cm">│</span>
+<span class="cm">│</span> List <span class="cm">│</span>  (full height)           <span class="cm">│</span>   tool logs,     <span class="cm">│</span>
+<span class="cm">│</span>      <span class="cm">│</span>                          <span class="cm">│</span>   artifacts)     <span class="cm">│</span>
+<span class="cm">│</span> +New <span class="cm">│</span>                          <span class="cm">│</span>                  <span class="cm">│</span>
+<span class="cm">│</span>      <span class="cm">│</span>                          <span class="cm">│</span>                  <span class="cm">│</span>
+<span class="cm">│</span> Gear <span class="cm">│</span>                          <span class="cm">│</span>                  <span class="cm">│</span>
+<span class="cm">└──────┴──────────────────────────┴──────────────────┘</span></pre>
+    </div>
+
+    <h3 class="mt-3 mb-1" style="font-size:1.125rem; font-weight:600; color:var(--gray-100);">State management</h3>
+    <div class="grid-3">
+      <div class="card">
+        <h3><code>workspace-store</code></h3>
+        <p>Active agent/team, active tab, sidebar state, right panel content, command palette. <span class="badge badge-purple">Zustand</span></p>
+      </div>
+      <div class="card">
+        <h3><code>chat-store</code></h3>
+        <p>Messages array, streaming state, partial content, tool calls, memory mutation indicators. <span class="badge badge-purple">Zustand</span></p>
+      </div>
+      <div class="card">
+        <h3><code>memory-store</code></h3>
+        <p>Memory blocks, active block, editing state, draft content, archival search results. <span class="badge badge-purple">Zustand</span></p>
+      </div>
+    </div>
+
+    <h3 class="mt-3 mb-1" style="font-size:1.125rem; font-weight:600; color:var(--gray-100);">Workspace components</h3>
+    <div class="grid-4">
+      <div class="card"><h3>NavRail</h3><p>48px icon-only sidebar with agent list navigation</p></div>
+      <div class="card"><h3>ChatPanel</h3><p>Streaming messages with inline tool calls</p></div>
+      <div class="card"><h3>MemoryPanel</h3><p>Block inspector, archival search, manual injection</p></div>
+      <div class="card"><h3>ToolLogPanel</h3><p>MCP server status, execution log, duration tracking</p></div>
+      <div class="card"><h3>StreamingMessage</h3><p>Typewriter effect with reasoning accordion</p></div>
+      <div class="card"><h3>ToolCallInline</h3><p>Collapsible tool call with status indicator</p></div>
+      <div class="card"><h3>MemoryBlockCard</h3><p>Editable block with usage bar and save/cancel</p></div>
+      <div class="card"><h3>Providers</h3><p>QueryClient + Zustand hydration wrapper</p></div>
+    </div>
+  </section>
+
+  <!-- Data Model -->
+  <section>
+    <div class="section-label">Database</div>
+    <h2 class="section-title">Data model</h2>
+    <p class="section-desc">Prisma 7 with SQLite. JSON stored as String columns, parsed at the API boundary.</p>
+
+    <div class="grid-2">
+      <div>
+        <h3 class="mb-1" style="font-size:1rem; font-weight:600; color:var(--gray-300);">Existing models (modified)</h3>
+        <table>
+          <tr><td><code>AgentProject</code></td><td>+ <code>lettaAgentId</code> (String?)</td></tr>
+          <tr><td><code>Deployment</code></td><td>+ <code>lettaAgentId</code> (String?)</td></tr>
+          <tr><td><code>AgentTemplate</code></td><td>Unchanged</td></tr>
+          <tr><td><code>ChatSession</code></td><td>Unchanged</td></tr>
+          <tr><td><code>McpServerConfig</code></td><td>Unchanged</td></tr>
+          <tr><td><code>ToolExecutionLog</code></td><td>Unchanged</td></tr>
+        </table>
+      </div>
+      <div>
+        <h3 class="mb-1" style="font-size:1rem; font-weight:600; color:var(--gray-300);">New models</h3>
+        <table>
+          <tr><td><code>AgentTeam</code></td><td>Team with name, slug, orchestration config</td></tr>
+          <tr><td><code>TeamMembership</code></td><td>Agent-team join with role + lettaAgentId</td></tr>
+          <tr><td><code>TeamProject</code></td><td>Project with brief, lettaBlockIds, status</td></tr>
+          <tr><td><code>Task</code></td><td>Task tracking with assignment + status</td></tr>
+          <tr><td><code>Artifact</code></td><td>Agent-produced outputs with type + metadata</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- MCP Presets -->
+  <section>
+    <div class="section-label">Tools</div>
+    <h2 class="section-title">MCP server presets</h2>
+    <p class="section-desc">Pre-configured MCP servers that agents can use for external tool access.</p>
+
+    <div class="grid-3 mt-2">
+      <div class="card">
+        <h3><span class="badge badge-green">Filesystem</span></h3>
+        <p>Local filesystem access within <code>/tmp/agent-workspace</code>. 10s timeout. No network.</p>
+      </div>
+      <div class="card">
+        <h3><span class="badge badge-blue">Git</span></h3>
+        <p>Repository operations: clone, commit, push, diff. 15s timeout. No network.</p>
+      </div>
+      <div class="card">
+        <h3><span class="badge badge-purple">Browser</span></h3>
+        <p>Headless Puppeteer for web scraping and interaction. 30s timeout. Network enabled.</p>
+      </div>
+      <div class="card">
+        <h3><span class="badge badge-amber">Jira Cloud</span></h3>
+        <p>Issue tracking and workflow automation. Requires JIRA_URL, JIRA_EMAIL, JIRA_API_TOKEN.</p>
+      </div>
+      <div class="card">
+        <h3><span class="badge badge-blue">Vercel</span></h3>
+        <p>Deployments, domains, and project management. Requires VERCEL_TOKEN. 30s timeout.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Specialist Agents -->
+  <section>
+    <div class="section-label">Seeds</div>
+    <h2 class="section-title">Specialist agent seeds</h2>
+    <p class="section-desc">Four specialist agents pre-configured for the first team project: building autonomoustech.ca.</p>
+
+    <div class="grid-4">
+      <div class="card">
+        <div class="icon icon-purple">D</div>
+        <h3>Website Designer</h3>
+        <p>Next.js App Router, responsive layouts, Tailwind CSS, dark-mode-first UI, interactive prototypes.</p>
+      </div>
+      <div class="card">
+        <div class="icon icon-blue">B</div>
+        <h3>Brand Strategist</h3>
+        <p>Brand voice, visual identity, messaging framework, competitive positioning, brand consistency audits.</p>
+      </div>
+      <div class="card">
+        <div class="icon icon-green">C</div>
+        <h3>Content Writer</h3>
+        <p>Technical copywriting, product narratives, developer-facing content, landing page copy, blog strategy.</p>
+      </div>
+      <div class="card">
+        <div class="icon icon-amber">S</div>
+        <h3>SEO Specialist</h3>
+        <p>Technical SEO, semantic HTML, structured data, meta optimization, keyword research, Core Web Vitals.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Phases -->
+  <section id="phases">
+    <div class="section-label">Progress</div>
+    <h2 class="section-title">Execution phases</h2>
+    <p class="section-desc">6-phase execution plan. Phases 1-5 complete. Phase 6 (Polish) pending.</p>
+
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-marker marker-done">1</div>
+        <div class="timeline-content">
+          <h4>Letta infrastructure <span class="badge badge-green">Complete</span></h4>
+          <p>Docker setup, TS SDK client, deploy endpoint, runtime chat proxy, lettaAgentId in Prisma schema.</p>
+          <div class="file-list mt-1">
+            <span class="file-tag">docker-compose.yml</span>
+            <span class="file-tag">src/lib/letta/client.ts</span>
+            <span class="file-tag">src/lib/letta/translate.ts</span>
+            <span class="file-tag">src/lib/letta/messages.ts</span>
+            <span class="file-tag">prisma/schema.prisma</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-marker marker-done">2</div>
+        <div class="timeline-content">
+          <h4>Memory &amp; skills <span class="badge badge-green">Complete</span></h4>
+          <p>Memory block architecture, skill loading (SKILL.md to archival), memory management API routes, memory categorization prompt.</p>
+          <div class="file-list mt-1">
+            <span class="file-tag">src/lib/letta/memory.ts</span>
+            <span class="file-tag">src/lib/letta/skills.ts</span>
+            <span class="file-tag">src/app/api/letta/</span>
+            <span class="file-tag">skills/brand-guide/</span>
+            <span class="file-tag">skills/frontend-design/</span>
+            <span class="file-tag">skills/payload-cms/</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-marker marker-done">3</div>
+        <div class="timeline-content">
+          <h4>Frontend redesign <span class="badge badge-green">Complete</span></h4>
+          <p>Zustand stores, TanStack Query provider, workspace layout with nav rail, chat/memory/tools panels, streaming messages, quick-create.</p>
+          <div class="file-list mt-1">
+            <span class="file-tag">src/stores/</span>
+            <span class="file-tag">src/components/workspace/</span>
+            <span class="file-tag">src/components/providers.tsx</span>
+            <span class="file-tag">src/app/agents/[id]/page.tsx</span>
+            <span class="file-tag">src/app/page.tsx</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-marker marker-done">4</div>
+        <div class="timeline-content">
+          <h4>Multi-agent teams <span class="badge badge-green">Complete</span></h4>
+          <p>Prisma models (AgentTeam, TeamMembership, TeamProject), CRUD routes, team deployment, workspace UI, shared memory panel.</p>
+          <div class="file-list mt-1">
+            <span class="file-tag">src/app/api/teams/</span>
+            <span class="file-tag">src/app/teams/</span>
+            <span class="file-tag">src/lib/letta/teams.ts</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-marker marker-done">5</div>
+        <div class="timeline-content">
+          <h4>Specialist agents &amp; testing <span class="badge badge-green">Complete</span></h4>
+          <p>Vercel MCP preset, 4 specialist agent seeds, Letta side-deploy, comprehensive test suite (519 tests, 35 files, 6 E2E specs).</p>
+          <div class="file-list mt-1">
+            <span class="file-tag">prisma/seed.ts</span>
+            <span class="file-tag">tests/api/letta-memory.test.ts</span>
+            <span class="file-tag">tests/lib/letta-modules.test.ts</span>
+            <span class="file-tag">tests/stores/stores.test.ts</span>
+            <span class="file-tag">tests/e2e/teams.spec.ts</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-marker marker-pending">6</div>
+        <div class="timeline-content">
+          <h4>Polish <span class="badge badge-amber">Pending</span></h4>
+          <p>Observability (Langfuse/custom tracing), pipeline orchestration (v2), orchestrator agent (v3), full site QA, SEO, production deployment.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tests -->
+  <section id="tests">
+    <div class="section-label">Quality</div>
+    <h2 class="section-title">Test coverage</h2>
+    <p class="section-desc">519 unit/integration tests across 35 files + 6 Playwright E2E spec files. Zero failures.</p>
+
+    <div class="test-grid">
+      <div class="test-card">
+        <h4>API route tests</h4>
+        <div class="count">212</div>
+        <p class="text-xs text-muted mt-1">agents, deploy, chat, export, sessions, teams, MCP servers, Letta memory/archival, team deploy</p>
+      </div>
+      <div class="test-card">
+        <h4>Library module tests</h4>
+        <div class="count">112</div>
+        <p class="text-xs text-muted mt-1">export, validation, slug, Letta translate, memory, skills, teams</p>
+      </div>
+      <div class="test-card">
+        <h4>Runtime engine tests</h4>
+        <div class="count">82</div>
+        <p class="text-xs text-muted mt-1">engine, tools, guardrails, MCP client, MCP presets, prompt builder</p>
+      </div>
+      <div class="test-card">
+        <h4>Zustand store tests</h4>
+        <div class="count">77</div>
+        <p class="text-xs text-muted mt-1">workspace (22), chat (33), memory (22)</p>
+      </div>
+      <div class="test-card">
+        <h4>Integration flow tests</h4>
+        <div class="count">28</div>
+        <p class="text-xs text-muted mt-1">deploy+chat, redeployment, pause/resume, multi-agent, guardrails, sessions</p>
+      </div>
+      <div class="test-card">
+        <h4>E2E Playwright specs</h4>
+        <div class="count">6 files</div>
+        <p class="text-xs text-muted mt-1">agent-list, builder, deploy, new-agent, public-chat, teams (44 tests)</p>
+      </div>
+    </div>
+
+    <div class="arch-diagram mt-3">
+      <pre>$ <span class="st">npm test</span>
+
+ <span class="st">35 passed</span> (35)
+ <span class="st">519 passed</span> (519)
+ Duration  663ms
+
+$ <span class="st">npm run build</span>
+
+ <span class="hl">33 routes compiled</span>
+ 0 errors</pre>
+    </div>
+  </section>
+
+  <!-- Key Decisions -->
+  <section>
+    <div class="section-label">Decisions</div>
+    <h2 class="section-title">Architecture decisions</h2>
+    <p class="section-desc">Key choices made during implementation and their rationale.</p>
+
+    <table>
+      <thead>
+        <tr><th>Decision</th><th>Choice</th><th>Rationale</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Django rewrite</td><td><span class="badge badge-green">No</span></td><td>~10K lines of tested TS code. Evolve, don't rewrite.</td></tr>
+        <tr><td>Runtime backend</td><td><span class="badge badge-purple">Letta</span></td><td>Self-editing memory, MCP support, shared blocks, Claude support.</td></tr>
+        <tr><td>Agents per project</td><td><span class="badge badge-blue">Persistent</span></td><td>Agents accumulate expertise; projects are swappable contexts.</td></tr>
+        <tr><td>V1 orchestration</td><td><span class="badge badge-amber">Human-directed</span></td><td>Simplest, maximum control for small team.</td></tr>
+        <tr><td>Agent communication</td><td><span class="badge badge-purple">Shared memory</span></td><td>Implicit coordination via shared blocks (primary) + async messaging (secondary).</td></tr>
+        <tr><td>Artifact format</td><td><span class="badge badge-blue">Markdown + YAML</span></td><td>Consistent with SKILL.md convention, human-readable.</td></tr>
+        <tr><td>State management</td><td><span class="badge badge-purple">Zustand + TanStack</span></td><td>Minimal boilerplate. Zustand for UI, TanStack Query for server cache.</td></tr>
+        <tr><td>Real-time streaming</td><td><span class="badge badge-green">SSE via proxy</span></td><td>Native Letta support, credentials stay server-side.</td></tr>
+        <tr><td>Dual runtime</td><td><span class="badge badge-blue">Letta + Claude</span></td><td>Agents with lettaAgentId use Letta; others fall back to existing Claude engine.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</div>
+
+<footer>
+  <p>Agent OS &mdash; Built by Autonomous &mdash; Last updated: 2026-02-13</p>
+</footer>
+
+</body>
+</html>
