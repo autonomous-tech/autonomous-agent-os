@@ -145,8 +145,8 @@ export async function POST(
     if (agent.lettaAgentId && isLettaEnabled() && (sessionEnding || turnCount % 10 === 0)) {
       // Fire-and-forget — don't block the response
       const recentMessages = updatedMessages.slice(-20).map((m) => `${m.role}: ${m.content}`).join("\n");
-      syncSessionMemory(agent.lettaAgentId, { summary: recentMessages }).catch((err) => {
-        console.error("[runtime/chat] Memory sync failed (non-blocking):", err instanceof Error ? err.message : err);
+      syncSessionMemory(agent.lettaAgentId, recentMessages, config).catch((err) => {
+        console.error("[runtime/chat] Memory sync failed (non-blocking):", err);
       });
     }
 
@@ -190,5 +190,8 @@ export async function POST(
 }
 
 function generateSessionToken(): string {
-  return `ses_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return `ses_${hex}`;
 }

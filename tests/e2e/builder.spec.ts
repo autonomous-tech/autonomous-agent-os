@@ -1,275 +1,385 @@
 // =============================================================================
-// Agent OS -- E2E Tests: Builder Page (Split-Pane UI)
+// Agent OS -- E2E Tests: Builder Page (2-Column Section-Card Editor)
 // =============================================================================
-// Tests for the main builder interface with sidebar, chat, and preview.
-// Spec reference: Section 3 -- The Builder: Split-Pane UI
+// Tests for the agent builder with section cards (left) and live preview (right).
+// The builder has 6 section cards: Identity, Purpose, Audience, Workflow,
+// Memory Protocol, and Boundaries. The header has Try It, Export, Deploy,
+// and Save buttons. The right panel shows a LivePreview with file tabs.
 // =============================================================================
 
 import { test, expect } from '@playwright/test'
+import { createDeployableAgent, deleteAgent } from './helpers'
 
 test.describe('Builder Page', () => {
-  // We need an agent to exist to test the builder.
-  // The approach: create an agent via the API, then navigate to its builder.
-  let agentId: string | null = null
+  let agentId: string
+  let agentSlug: string
 
-  test.beforeEach(async ({ request, page }) => {
-    // Try to create an agent via the API
-    try {
-      const response = await request.post('/api/agents', {
-        data: {
-          initialDescription:
-            'A customer support agent for testing the builder',
-        },
-      })
+  test.beforeEach(async ({ request }) => {
+    const agent = await createDeployableAgent(request)
+    agentId = agent.id
+    agentSlug = agent.slug
+  })
 
-      if (response.ok()) {
-        const body = await response.json()
-        agentId = body.id
-      }
-    } catch {
-      agentId = null
-    }
-
-    // Navigate to the builder page for this agent
+  test.afterEach(async ({ request }) => {
     if (agentId) {
-      await page.goto(`/agents/${agentId}`)
-    } else {
-      // If API is not available, try creating through the UI
-      await page.goto('/')
-      const newAgentButton = page
-        .getByRole('button', { name: /new agent/i })
-        .or(page.getByRole('link', { name: /new agent/i }))
-
-      if (await newAgentButton.isVisible()) {
-        await newAgentButton.click()
-        await page.waitForTimeout(500)
-
-        const descInput = page
-          .getByPlaceholder(/describe|agent/i)
-          .or(page.getByRole('textbox').first())
-
-        if (await descInput.isVisible()) {
-          await descInput.fill('A test agent for the builder')
-          const submitBtn = page
-            .getByRole('button', { name: /create|start|build/i })
-            .first()
-          if (await submitBtn.isVisible()) {
-            await submitBtn.click()
-            await page.waitForTimeout(2000)
-          }
-        }
-      }
+      await deleteAgent(request, agentId)
     }
   })
 
-  test('split-pane UI renders with sidebar, chat, and preview areas', async ({
-    page,
-  }) => {
-    // The builder should have 3 main areas
-    // Sidebar with stages
-    const sidebar = page
-      .locator('[data-testid="sidebar"]')
-      .or(page.locator('nav'))
-      .or(page.locator('aside'))
-      .first()
+  // ── Layout ────────────────────────────────────────────────────────
 
-    // Chat pane
-    const chatPane = page
-      .locator('[data-testid="chat-pane"]')
-      .or(page.locator('[data-testid="conversation"]'))
-      .or(page.getByRole('textbox').first())
+  test('builder page loads with 2-column layout', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
 
-    // Preview pane
-    const previewPane = page
-      .locator('[data-testid="preview-pane"]')
-      .or(page.locator('[data-testid="agent-preview"]'))
+    // Header with breadcrumb should be visible
+    const backLink = page.getByText('Agents').first()
+    await expect(backLink).toBeVisible()
 
-    // At least the sidebar and a text input should be visible
-    const hasSidebar = await sidebar.isVisible().catch(() => false)
-    const hasChat = await chatPane.isVisible().catch(() => false)
-    const hasPreview = await previewPane.isVisible().catch(() => false)
-
-    // The builder should have at least 2 of these 3 areas
-    const visibleCount = [hasSidebar, hasChat, hasPreview].filter(Boolean).length
-    expect(visibleCount).toBeGreaterThanOrEqual(1)
+    // Agent name should appear in the header
+    await expect(page.getByText('TestBot').first()).toBeVisible()
   })
 
-  test('all 6 stages are visible in the sidebar', async ({ page }) => {
-    const stages = [
-      'Mission',
-      'Identity',
-      'Capabilities',
-      'Memory',
-      'Triggers',
-      'Guardrails',
-    ]
+  test('all 6 section cards are visible', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
 
-    for (const stage of stages) {
-      const stageElement = page.getByText(stage, { exact: false }).first()
-      const isVisible = await stageElement.isVisible().catch(() => false)
-      // All stages should be visible somewhere on the page
-      if (!isVisible) {
-        // Try case-insensitive search
-        const altElement = page
-          .getByText(new RegExp(stage, 'i'))
-          .first()
-        const altVisible = await altElement.isVisible().catch(() => false)
-        expect(altVisible).toBe(true)
-      }
+    // Each section card has a title rendered as an h3
+    const sections = ['Identity', 'Purpose', 'Audience', 'Workflow', 'Memory Protocol', 'Boundaries']
+
+    for (const section of sections) {
+      const heading = page.getByRole('heading', { name: section, level: 3 })
+      await expect(heading).toBeVisible()
     }
   })
 
-  test('can click a stage in the sidebar to navigate', async ({ page }) => {
-    // Click on the "Identity" stage
-    const identityStage = page
-      .getByText(/identity/i)
-      .first()
+  test('each section card shows a status badge', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
 
-    if (await identityStage.isVisible()) {
-      await identityStage.click()
-      await page.waitForTimeout(500)
-
-      // After clicking, the page should show identity-related content
-      // or the URL should change to reflect the current stage
-      const url = page.url()
-      const hasStageInUrl = url.includes('identity')
-      const hasStageContent = await page
-        .getByText(/name|tone|personality|vibe/i)
-        .first()
-        .isVisible()
-        .catch(() => false)
-
-      // Either the URL changes or the content updates
-      expect(hasStageInUrl || hasStageContent).toBe(true)
-    }
+    // Section cards display status badges (Empty, Draft, or Done)
+    // With the deployable config, most sections should be "Done"
+    const doneBadges = page.getByText('Done')
+    const doneCount = await doneBadges.count()
+    expect(doneCount).toBeGreaterThanOrEqual(1)
   })
 
-  test('chat input field accepts messages', async ({ page }) => {
-    const chatInput = page
-      .getByPlaceholder(/type|message|ask|chat/i)
-      .or(page.getByRole('textbox').first())
+  // ── Header buttons ────────────────────────────────────────────────
 
-    if (await chatInput.isVisible()) {
-      await chatInput.fill('Tell me about the mission stage')
-      const value = await chatInput.inputValue()
-      expect(value).toContain('mission')
-    }
+  test('Try It button is visible in the header', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
+
+    const tryItButton = page.getByRole('button', { name: /try it/i })
+    await expect(tryItButton).toBeVisible()
   })
 
-  test('preview pane shows agent config sections', async ({ page }) => {
-    // The preview pane should show sections corresponding to the 6 stages
-    const previewSections = [
-      /mission/i,
-      /identity/i,
-      /capabilities/i,
-      /memory/i,
-      /triggers/i,
-      /guardrails/i,
-    ]
+  test('Export button is visible in the header', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
 
-    let visibleSections = 0
-    for (const section of previewSections) {
-      const element = page.getByText(section).first()
-      if (await element.isVisible().catch(() => false)) {
-        visibleSections++
-      }
-    }
-
-    // At least some sections should be visible (might not all be on screen)
-    expect(visibleSections).toBeGreaterThanOrEqual(1)
-  })
-
-  test('"Try It" button is visible after some configuration', async ({
-    page,
-  }) => {
-    const tryItButton = page
-      .getByRole('button', { name: /try it|test|sandbox/i })
-      .first()
-
-    // The Try It button should be somewhere on the page
-    // It may be disabled initially if no stages are complete
-    const isVisible = await tryItButton.isVisible().catch(() => false)
-    // The button might exist but not be visible until stages are complete
-    // Just verify the page has loaded properly
-    expect(page.url()).toBeTruthy()
-  })
-
-  test('"Export" button is visible', async ({ page }) => {
-    const exportButton = page
-      .getByRole('button', { name: /export|download/i })
-      .first()
-
-    const isVisible = await exportButton.isVisible().catch(() => false)
-    // Export button should be present somewhere on the builder page
-    // It may be in the header or the preview pane
-    if (!isVisible) {
-      // Also check for an export link
-      const exportLink = page
-        .getByRole('link', { name: /export|download/i })
-        .first()
-      const linkVisible = await exportLink.isVisible().catch(() => false)
-      // If neither button nor link is visible, the builder might not be fully loaded
-      // This is acceptable if the page hasn't completed loading
-    }
-    expect(page.url()).toBeTruthy()
+    const exportButton = page.getByRole('button', { name: /export/i })
+    await expect(exportButton).toBeVisible()
   })
 
   test('Save button is visible in the header', async ({ page }) => {
-    const saveButton = page
-      .getByRole('button', { name: /save/i })
-      .first()
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
 
-    const isVisible = await saveButton.isVisible().catch(() => false)
-    // Save button should be in the header area
-    // Verify the page loaded
-    expect(page.url()).toBeTruthy()
+    const saveButton = page.getByRole('button', { name: /save/i })
+    await expect(saveButton).toBeVisible()
   })
 
-  test('current stage is highlighted in the sidebar', async ({ page }) => {
-    // The Mission stage should be highlighted by default (first stage)
-    const missionStage = page.getByText(/mission/i).first()
+  test('Deploy button is visible when agent is not deployed', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
 
-    if (await missionStage.isVisible()) {
-      // Check if the mission element has an active/selected style
-      // This could be a class, aria-current, or data attribute
-      const classes = await missionStage
-        .evaluate((el) => {
-          // Walk up to find the clickable parent that might have active styling
-          let current: Element | null = el
-          for (let i = 0; i < 3; i++) {
-            if (!current) break
-            const classList = current.className
-            if (
-              classList.includes('active') ||
-              classList.includes('selected') ||
-              classList.includes('current') ||
-              current.getAttribute('aria-current') === 'true' ||
-              current.getAttribute('data-active') === 'true'
-            ) {
-              return true
-            }
-            current = current.parentElement
-          }
-          return false
-        })
-        .catch(() => false)
-
-      // The stage should have some indication of being active
-      // If styling isn't applied yet, we just verify the element exists
-      expect(await missionStage.isVisible()).toBe(true)
-    }
+    const deployButton = page.getByRole('button', { name: /^deploy$/i })
+    await expect(deployButton).toBeVisible()
   })
 
-  test('unconfigured preview sections show placeholder text', async ({
-    page,
-  }) => {
-    // Sections that haven't been configured should show "Not configured" or similar
-    const placeholders = page
-      .getByText(/not configured|not set|empty|pending/i)
-      .all()
+  // ── Identity card ─────────────────────────────────────────────────
 
-    // The page should either show placeholder text or actual content
-    // Both are valid depending on what's been configured
-    expect(page.url()).toBeTruthy()
+  test('Identity card has Name, Emoji, Vibe, Tone, and Greeting fields', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
+
+    // Name field
+    const nameInput = page.getByPlaceholder('Agent name')
+    await expect(nameInput).toBeVisible()
+
+    // Emoji field
+    const emojiInput = page.getByPlaceholder('\uD83E\uDD16')
+    await expect(emojiInput).toBeVisible()
+
+    // Vibe field
+    const vibeInput = page.getByPlaceholder('Friendly, helpful, solution-oriented')
+    await expect(vibeInput).toBeVisible()
+
+    // Tone pills (casual, professional, etc.)
+    const casualPill = page.getByRole('button', { name: 'casual', exact: true })
+    await expect(casualPill).toBeVisible()
+
+    // Greeting field
+    const greetingTextarea = page.getByPlaceholder(/Hey! I'm your agent/i)
+    await expect(greetingTextarea).toBeVisible()
+  })
+
+  test('can fill in agent name in Identity card', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
+
+    const nameInput = page.getByPlaceholder('Agent name')
+    await nameInput.clear()
+    await nameInput.fill('My New Agent')
+
+    const value = await nameInput.inputValue()
+    expect(value).toBe('My New Agent')
+  })
+
+  test('changing agent name updates the header breadcrumb', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
+
+    const nameInput = page.getByPlaceholder('Agent name')
+    await nameInput.clear()
+    await nameInput.fill('RenamedAgent')
+
+    // The header should reflect the new name
+    await expect(page.locator('header').getByText('RenamedAgent')).toBeVisible()
+  })
+
+  test('selecting a tone pill updates the selected state', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
+
+    // Click the "professional" tone pill
+    const professionalPill = page.getByRole('button', { name: 'professional', exact: true })
+    await professionalPill.click()
+
+    // The selected pill should have a highlighted style (bg-zinc-100 text-zinc-900)
+    await expect(professionalPill).toHaveClass(/bg-zinc-100/)
+  })
+
+  // ── Purpose card ──────────────────────────────────────────────────
+
+  test('Purpose card has Description and Key Tasks fields', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
+
+    const descTextarea = page.getByPlaceholder('What does this agent do?')
+    await expect(descTextarea).toBeVisible()
+
+    const tasksInput = page.getByPlaceholder('Add a task and press Enter')
+    await expect(tasksInput).toBeVisible()
+  })
+
+  test('can fill in the purpose description', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
+
+    const descTextarea = page.getByPlaceholder('What does this agent do?')
+    await descTextarea.clear()
+    await descTextarea.fill('Helps customers resolve billing issues')
+
+    const value = await descTextarea.inputValue()
+    expect(value).toBe('Helps customers resolve billing issues')
+  })
+
+  // ── Audience card ─────────────────────────────────────────────────
+
+  test('Audience card has Primary Audience and Scope fields', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
+
+    const audienceInput = page.getByPlaceholder('Who will use this agent?')
+    await expect(audienceInput).toBeVisible()
+
+    // Scope pills
+    const teamPill = page.getByRole('button', { name: 'Team' })
+    await expect(teamPill).toBeVisible()
+  })
+
+  test('Audience card shows Optional label when empty', async ({ request, page }) => {
+    // Create a fresh agent without the deployable config
+    const createRes = await request.post('/api/agents', {
+      data: { name: 'Bare Agent', description: 'test' },
+    })
+    const bare = await createRes.json()
+
+    await page.goto(`/agents/${bare.id}`)
+    await page.waitForLoadState('networkidle')
+
+    const optional = page.getByText('Optional')
+    const hasOptional = await optional.isVisible().catch(() => false)
+    expect(hasOptional).toBe(true)
+
+    // Clean up
+    await request.delete(`/api/agents/${bare.id}`)
+  })
+
+  // ── Workflow card ─────────────────────────────────────────────────
+
+  test('Workflow card has Add Capability and Add Trigger buttons', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
+
+    const addCapability = page.getByRole('button', { name: /add capability/i })
+    await expect(addCapability).toBeVisible()
+
+    const addTrigger = page.getByRole('button', { name: /add trigger/i })
+    await expect(addTrigger).toBeVisible()
+  })
+
+  // ── Memory card ───────────────────────────────────────────────────
+
+  test('Memory card has strategy pills', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
+
+    const conversational = page.getByRole('button', { name: 'Conversational' })
+    await expect(conversational).toBeVisible()
+
+    const taskBased = page.getByRole('button', { name: 'Task-based' })
+    await expect(taskBased).toBeVisible()
+
+    const minimal = page.getByRole('button', { name: 'Minimal' })
+    await expect(minimal).toBeVisible()
+  })
+
+  // ── Boundaries card ───────────────────────────────────────────────
+
+  test('Boundaries card has Behavioral Rules, Exclusions, and Defense fields', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
+
+    const rulesInput = page.getByPlaceholder('Add a rule')
+    await expect(rulesInput).toBeVisible()
+
+    const exclusionsInput = page.getByPlaceholder('What should the agent NOT do?')
+    await expect(exclusionsInput).toBeVisible()
+
+    // Defense pills
+    const strictPill = page.getByRole('button', { name: 'Strict' })
+    await expect(strictPill).toBeVisible()
+  })
+
+  test('Boundaries card has collapsible resource limits', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
+
+    const showLimits = page.getByText('Show resource limits')
+    await expect(showLimits).toBeVisible()
+
+    await showLimits.click()
+
+    const maxTurnsInput = page.getByPlaceholder('25')
+    await expect(maxTurnsInput).toBeVisible()
+  })
+
+  // ── Live Preview ──────────────────────────────────────────────────
+
+  test('LivePreview shows agent.md tab by default', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
+
+    // File tabs should be visible
+    const agentMdTab = page.getByText('agent.md', { exact: true })
+    await expect(agentMdTab).toBeVisible()
+
+    const mcpJsonTab = page.getByText('.mcp.json', { exact: true })
+    await expect(mcpJsonTab).toBeVisible()
+
+    const settingsTab = page.getByText('settings.json', { exact: true })
+    await expect(settingsTab).toBeVisible()
+  })
+
+  test('LivePreview updates when agent name is changed', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
+
+    // Change the agent name
+    const nameInput = page.getByPlaceholder('Agent name')
+    await nameInput.clear()
+    await nameInput.fill('PreviewTestAgent')
+
+    // The preview should contain the new name (rendered as an h1 in agent.md)
+    await expect(page.getByText('PreviewTestAgent').last()).toBeVisible()
+  })
+
+  test('LivePreview can switch to .mcp.json tab', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
+
+    const mcpJsonTab = page.getByText('.mcp.json', { exact: true })
+    await mcpJsonTab.click()
+
+    // The content should show MCP server configuration (JSON with mcpServers)
+    await expect(page.getByText(/mcpServers/)).toBeVisible()
+  })
+
+  // ── Save flow ─────────────────────────────────────────────────────
+
+  test('clicking Save triggers a save and button shows loading state', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
+
+    // Modify something to make the save meaningful
+    const nameInput = page.getByPlaceholder('Agent name')
+    await nameInput.clear()
+    await nameInput.fill('SavedAgent')
+
+    // Click Save
+    const saveButton = page.getByRole('button', { name: /save/i })
+    await saveButton.click()
+
+    // Wait for the save to complete (button should remain visible)
+    await expect(saveButton).toBeVisible({ timeout: 5000 })
+
+    // Reload and verify the name persisted
+    await page.reload()
+    await page.waitForLoadState('networkidle')
+
+    const reloadedName = page.getByPlaceholder('Agent name')
+    await expect(reloadedName).toHaveValue('SavedAgent', { timeout: 5000 })
+  })
+
+  // ── Try It dialog ─────────────────────────────────────────────────
+
+  test('clicking Try It opens the test chat interface', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
+
+    const tryItButton = page.getByRole('button', { name: /try it/i })
+    await tryItButton.click()
+
+    // The test chat should open (full-screen replacement with an exit button)
+    const exitButton = page.getByRole('button', { name: /exit|close|back/i }).first()
+    await expect(exitButton).toBeVisible({ timeout: 5000 })
+  })
+
+  // ── Export dialog ─────────────────────────────────────────────────
+
+  test('clicking Export opens the export dialog', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
+
+    const exportButton = page.getByRole('button', { name: /export/i })
+    await exportButton.click()
+
+    // The export dialog should open with Claude Code instructions
+    await expect(page.getByText(/claude code/i).first()).toBeVisible({ timeout: 5000 })
+  })
+
+  // ── Navigation ────────────────────────────────────────────────────
+
+  test('back arrow navigates to agent list', async ({ page }) => {
+    await page.goto(`/agents/${agentId}`)
+    await page.waitForLoadState('networkidle')
+
+    const backLink = page.getByText('Agents').first()
+    await backLink.click()
+
+    await page.waitForURL('/')
   })
 })

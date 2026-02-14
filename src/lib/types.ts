@@ -50,6 +50,7 @@ export interface MemoryConfig {
 }
 
 export interface Trigger {
+  id?: string;
   type: "message" | "event" | "schedule";
   name?: string;
   description: string;
@@ -187,6 +188,65 @@ export function defaultConversations(): ConversationData {
     guardrails: [],
   };
 }
+
+// ── AI Enrichment types ──────────────────────────────────────────
+
+export interface EnrichmentSuggestion {
+  field: string;
+  original: string;
+  improved: string;
+  reason: string;
+}
+
+export interface EnrichmentIdea {
+  type: "task" | "capability" | "trigger" | "guardrail" | "remember";
+  value: string | Record<string, unknown>;
+  reason: string;
+}
+
+export interface EnrichmentQuestion {
+  question: string;
+  options: string[];
+  affects: string[];
+  reason: string;
+}
+
+export interface EnrichmentResponse {
+  suggestions: EnrichmentSuggestion[];
+  ideas: EnrichmentIdea[];
+  questions: EnrichmentQuestion[];
+}
+
+export type AiCalloutType = "suggestion" | "idea" | "question";
+
+export interface AiCallout {
+  id: string;
+  type: AiCalloutType;
+  data: EnrichmentSuggestion | EnrichmentIdea | EnrichmentQuestion;
+}
+
+export interface CalloutHandlers {
+  callouts?: AiCallout[];
+  onAcceptCallout?: (id: string) => void;
+  onDismissCallout?: (id: string) => void;
+  onAnswerCallout?: (id: string, answer: string) => void;
+  enriching?: boolean;
+}
+
+export type CardStatus = "empty" | "draft" | "done";
+
+// ── Section names (map to AGENT-MD-SPEC sections) ────────────────
+
+export const SECTION_NAMES = [
+  "identity",
+  "purpose",
+  "audience",
+  "workflow",
+  "memory",
+  "boundaries",
+] as const;
+
+export type SectionName = (typeof SECTION_NAMES)[number];
 
 // ── Structured creation input (new multi-step flow) ──────────────
 

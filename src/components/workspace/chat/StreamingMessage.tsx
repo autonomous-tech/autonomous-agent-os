@@ -17,10 +17,18 @@ export function StreamingMessage({ message }: StreamingMessageProps) {
 
   const isUser = message.role === "user";
 
-  // Simple markdown-like rendering
+  // Simple markdown-like rendering with HTML escaping to prevent XSS
   const renderContent = (content: string) => {
+    // Escape HTML entities first to prevent injection
+    let rendered = content
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+
     // Bold: **text**
-    let rendered = content.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>');
+    rendered = rendered.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>');
 
     // Italic: *text*
     rendered = rendered.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');

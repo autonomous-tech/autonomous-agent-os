@@ -1,4 +1,20 @@
 services:
+  app:
+    build: .
+    container_name: agent-os
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "file:/app/data/dev.db"
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      LETTA_BASE_URL: http://letta-server:8283
+      LETTA_SERVER_PASSWORD: ${LETTA_SERVER_PASSWORD:-letta}
+    depends_on:
+      letta-server:
+        condition: service_started
+    volumes:
+      - app-data:/app/data
+
   letta-postgres:
     image: postgres:16-alpine
     container_name: letta-postgres
@@ -8,8 +24,6 @@ services:
       POSTGRES_DB: letta
     volumes:
       - letta-pgdata:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U letta"]
       interval: 5s
@@ -31,5 +45,6 @@ services:
       - letta-data:/root/.letta
 
 volumes:
+  app-data:
   letta-pgdata:
   letta-data:
