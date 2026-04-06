@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent OS — Open Source AI Agent Orchestration Platform | Autonomous</title>
+  <meta name="description" content="Build, deploy, and orchestrate AI agent teams with persistent self-editing memory. Open source agent builder with MCP tools, multi-agent teams, and 6-stage guided creation. MIT licensed.">
+  <meta name="keywords" content="AI agents, agent builder, agent orchestration, AI agent teams, agent memory, MCP tools, open source AI, MemGPT, Letta, Claude API, multi-agent systems">
+  <meta name="author" content="Autonomous">
+  <link rel="canonical" href="https://github.com/Autonomous-sh/agent-builder">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Agent OS — Open Source AI Agent Orchestration Platform">
+  <meta property="og:description" content="Build, deploy, and orchestrate AI agent teams with persistent self-editing memory. 6-stage builder, MCP tools, multi-agent coordination. MIT licensed.">
+  <meta property="og:url" content="https://github.com/Autonomous-sh/agent-builder">
+  <meta property="og:site_name" content="Agent OS by Autonomous">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Agent OS — AI Agent Teams with Self-Editing Memory">
+  <meta name="twitter:description" content="Open source platform for building AI agent teams that remember, learn, and improve. By Autonomous.">
+
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Agent OS",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Cross-platform",
+    "description": "Open source platform for building, deploying, and orchestrating AI agent teams with persistent self-editing memory.",
+    "url": "https://github.com/Autonomous-sh/agent-builder",
+    "author": {
+      "@type": "Organization",
+      "name": "Autonomous",
+      "url": "https://autonomous.sh"
+    },
+    "license": "https://opensource.org/licenses/MIT",
+    "programmingLanguage": ["TypeScript", "JavaScript"],
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Autonomous",
+    "url": "https://autonomous.sh",
+    "logo": "https://autonomous.sh/logo.png",
+    "sameAs": [
+      "https://github.com/Autonomous-sh"
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --black: #0a0a0a;
+      --white: #fafafa;
+      --purple: #8b5cf6;
+      --purple-dark: #6d28d9;
+      --purple-light: #a78bfa;
+      --gray-100: #f4f4f5;
+      --gray-200: #e4e4e7;
+      --gray-300: #d4d4d8;
+      --gray-400: #a1a1aa;
+      --gray-500: #71717a;
+      --gray-600: #52525b;
+      --gray-700: #3f3f46;
+      --gray-800: #27272a;
+      --gray-900: #18181b;
+      --gray-950: #09090b;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --blue: #3b82f6;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--black);
+      color: var(--gray-100);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, .serif { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; }
+    code, pre, .mono { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+    a { color: inherit; text-decoration: none; }
+
+    /* ---- Noise texture ---- */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0.025;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 256px 256px;
+    }
+
+    /* ---- Keyframes ---- */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.92); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes slideInLeft {
+      from { opacity: 0; transform: translateX(-40px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(40px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      33% { transform: translateY(-15px) rotate(1deg); }
+      66% { transform: translateY(-8px) rotate(-1deg); }
+    }
+
+    @keyframes float-reverse {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      33% { transform: translateY(12px) rotate(-1deg); }
+      66% { transform: translateY(6px) rotate(1deg); }
+    }
+
+    @keyframes morph {
+      0%, 100% { border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%; }
+      25% { border-radius: 58% 42% 30% 70% / 55% 35% 65% 45%; }
+      50% { border-radius: 30% 70% 42% 58% / 65% 55% 45% 35%; }
+      75% { border-radius: 70% 30% 58% 42% / 35% 65% 35% 65%; }
+    }
+
+    @keyframes gradient-shift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); }
+      70% { box-shadow: 0 0 0 12px rgba(139, 92, 246, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.3); }
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    @keyframes draw-line {
+      from { stroke-dashoffset: 1000; }
+      to { stroke-dashoffset: 0; }
+    }
+
+    @keyframes rotate-slow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes count-up {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-up { opacity: 0; animation: fadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .scale-in { opacity: 0; animation: scaleIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .d1 { animation-delay: 0.1s; }
+    .d2 { animation-delay: 0.2s; }
+    .d3 { animation-delay: 0.3s; }
+    .d4 { animation-delay: 0.4s; }
+    .d5 { animation-delay: 0.5s; }
+    .d6 { animation-delay: 0.6s; }
+    .d7 { animation-delay: 0.7s; }
+    .d8 { animation-delay: 0.8s; }
+    .d9 { animation-delay: 0.9s; }
+    .d10 { animation-delay: 1.0s; }
+
+    /* ---- Nav ---- */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(10, 10, 10, 0.75);
+      backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid rgba(63, 63, 70, 0.3);
+      transition: all 0.3s;
+    }
+
+    nav.scrolled {
+      background: rgba(10, 10, 10, 0.92);
+      border-bottom-color: rgba(63, 63, 70, 0.5);
+    }
+
+    nav .inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+      padding: 0 2rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      letter-spacing: -0.01em;
+      transition: opacity 0.2s;
+    }
+
+    .logo:hover { opacity: 0.8; }
+
+    .logo .mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: white;
+      position: relative;
+    }
+
+    .logo .mark::after {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+      opacity: 0;
+      z-index: -1;
+      filter: blur(8px);
+      transition: opacity 0.3s;
+    }
+
+    .logo:hover .mark::after { opacity: 0.5; }
+
+    nav .links {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    nav .links a.nav-link {
+      font-size: 0.8125rem;
+      color: var(--gray-500);
+      transition: color 0.2s;
+      position: relative;
+    }
+
+    nav .links a.nav-link:hover { color: var(--gray-200); }
+
+    nav .links a.nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background: var(--purple);
+      transition: width 0.3s;
+    }
+
+    nav .links a.nav-link:hover::after { width: 100%; }
+
+    .gh-nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--gray-800);
+      border-radius: 8px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--gray-300);
+      transition: all 0.25s;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .gh-nav-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--gray-600);
+      color: var(--white);
+      transform: translateY(-1px);
+    }
+
+    .gh-nav-btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+    /* ---- Hero ---- */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 120px 2rem 80px;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    /* Hero background effects */
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    .hero-bg .orb {
+      position: absolute;
+      filter: blur(120px);
+    }
+
+    .hero-bg .orb-1 {
+      width: 700px;
+      height: 700px;
+      top: -250px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.15), transparent 65%);
+      animation: morph 20s ease-in-out infinite, float 12s ease-in-out infinite;
+    }
+
+    .hero-bg .orb-2 {
+      width: 500px;
+      height: 500px;
+      bottom: -150px;
+      right: -150px;
+      background: radial-gradient(circle, rgba(109, 40, 217, 0.1), transparent 65%);
+      animation: morph 15s ease-in-out infinite reverse, float-reverse 10s ease-in-out infinite;
+    }
+
+    .hero-bg .orb-3 {
+      width: 400px;
+      height: 400px;
+      top: 40%;
+      left: -100px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.07), transparent 65%);
+      animation: morph 18s ease-in-out infinite, float 14s ease-in-out infinite;
+      animation-delay: -5s;
+    }
+
+    .hero-bg .grid-lines {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(63, 63, 70, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(63, 63, 70, 0.06) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(ellipse 60% 50% at 50% 45%, black 10%, transparent 100%);
+    }
+
+    /* Animated particles */
+    .particles {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: var(--purple-light);
+      border-radius: 50%;
+      opacity: 0;
+      animation: particle-float 8s ease-in-out infinite;
+    }
+
+    @keyframes particle-float {
+      0% { opacity: 0; transform: translateY(100vh) scale(0); }
+      10% { opacity: 0.6; }
+      90% { opacity: 0.6; }
+      100% { opacity: 0; transform: translateY(-10vh) scale(1); }
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 840px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 16px 6px 10px;
+      background: rgba(139, 92, 246, 0.08);
+      border: 1px solid rgba(139, 92, 246, 0.18);
+      border-radius: 100px;
+      font-size: 0.8125rem;
+      color: var(--purple-light);
+      margin-bottom: 2.5rem;
+      font-weight: 500;
+      backdrop-filter: blur(8px);
+    }
+
+    .hero-badge .pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse-dot 2s ease-in-out infinite;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+    }
+
+    .hero h1 {
+      font-size: clamp(3.25rem, 7.5vw, 5.75rem);
+      line-height: 1.02;
+      letter-spacing: -0.035em;
+      color: var(--white);
+      margin-bottom: 1.75rem;
+    }
+
+    .hero h1 em {
+      font-style: italic;
+      background: linear-gradient(135deg, var(--purple-light) 0%, var(--purple) 40%, #818cf8 70%, var(--blue) 100%);
+      background-size: 300% 300%;
+      animation: gradient-shift 6s ease infinite;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero .subtitle {
+      font-size: clamp(1.0625rem, 1.8vw, 1.3125rem);
+      color: var(--gray-400);
+      max-width: 540px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.7;
+    }
+
+    .hero .subtitle strong {
+      color: var(--gray-200);
+      font-weight: 500;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 28px;
+      background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 0 0 0 rgba(139, 92, 246, 0), 0 2px 12px rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 40px rgba(139, 92, 246, 0.35), 0 12px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .btn-primary:hover::before { opacity: 1; }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary svg { width: 20px; height: 20px; fill: currentColor; position: relative; }
+
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      background: transparent;
+      color: var(--gray-300);
+      border: 1px solid var(--gray-700);
+      border-radius: 10px;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--gray-500);
+      color: var(--white);
+      background: rgba(255, 255, 255, 0.04);
+      transform: translateY(-2px);
+    }
+
+    .btn-ghost:active { transform: translateY(0); }
+
+    /* ---- Terminal ---- */
+    .terminal-wrap {
+      position: relative;
+      max-width: 700px;
+      margin: 4.5rem auto 0;
+      text-align: left;
+    }
+
+    .terminal-wrap::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 13px;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.05));
+      z-index: -1;
+    }
+
+    .terminal {
+      background: rgba(9, 9, 11, 0.95);
+      border: 1px solid var(--gray-800);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow:
+        0 32px 100px rgba(0, 0, 0, 0.6),
+        0 0 80px rgba(139, 92, 246, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 18px;
+      background: rgba(24, 24, 27, 0.5);
+      border-bottom: 1px solid rgba(39, 39, 42, 0.6);
+    }
+
+    .terminal-bar .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .terminal-bar .dot:nth-child(1) { background: #ef4444; }
+    .terminal-bar .dot:nth-child(2) { background: #f59e0b; }
+    .terminal-bar .dot:nth-child(3) { background: #10b981; }
+    .terminal-bar .title { margin-left: 8px; font-size: 0.75rem; color: var(--gray-500); font-family: 'DM Sans', sans-serif; }
+
+    .terminal-body {
+      padding: 1.5rem 1.75rem;
+      font-size: 0.8125rem;
+      line-height: 1.9;
+      min-height: 200px;
+    }
+
+    .terminal-body .line { opacity: 0; animation: fadeUp 0.5s ease-out forwards; }
+    .terminal-body .prompt { color: var(--purple-light); }
+    .terminal-body .cmd { color: var(--gray-200); }
+    .terminal-body .comment { color: var(--gray-600); }
+    .terminal-body .success { color: var(--green); }
+    .terminal-body .info { color: var(--blue); }
+    .terminal-body .dim { color: var(--gray-600); }
+
+    /* ---- Stats bar ---- */
+    .stats-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3rem;
+      padding: 3rem 2rem 0;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: var(--white);
+      letter-spacing: -0.02em;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--gray-500);
+      margin-top: 4px;
+    }
+
+    .stat-sep {
+      width: 1px;
+      height: 40px;
+      background: var(--gray-800);
+    }
+
+    /* ---- Sections ---- */
+    section { padding: 120px 2rem; max-width: 1200px; margin: 0 auto; }
+
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--purple-light);
+      margin-bottom: 1.25rem;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .section-label::before {
+      content: '';
+      width: 24px;
+      height: 1px;
+      background: linear-gradient(90deg, var(--purple), transparent);
+    }
+
+    .section-title {
+      font-size: clamp(2.25rem, 4.5vw, 3.75rem);
+      line-height: 1.08;
+      letter-spacing: -0.025em;
+      color: var(--white);
+      margin-bottom: 1.25rem;
+    }
+
+    .section-desc {
+      font-size: 1.0625rem;
+      color: var(--gray-400);
+      max-width: 520px;
+      line-height: 1.7;
+    }
+
+    .divider {
+      max-width: 1200px;
+      margin: 0 auto;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gray-800) 30%, var(--gray-800) 70%, transparent);
+    }
+
+    /* ---- Features ---- */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--gray-800);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-top: 4rem;
+      border: 1px solid var(--gray-800);
+    }
+
+    .feature-card {
+      background: var(--gray-950);
+      padding: 2.75rem 2.5rem;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--purple), transparent);
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    .feature-card:hover {
+      background: rgba(18, 18, 21, 1);
+    }
+
+    .feature-card:hover::before { opacity: 0.5; }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+      font-size: 1.25rem;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .feature-card:hover .feature-icon {
+      transform: scale(1.1) translateY(-2px);
+    }
+
+    .fi-purple { background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.15); }
+    .fi-green { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.15); }
+    .fi-blue { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.15); }
+    .fi-amber { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.15); }
+
+    .feature-card h3 {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1.0625rem;
+      font-weight: 600;
+      color: var(--gray-100);
+      margin-bottom: 0.75rem;
+    }
+
+    .feature-card p {
+      font-size: 0.875rem;
+      color: var(--gray-500);
+      line-height: 1.65;
+    }
+
+    /* ---- Builder stages ---- */
+    .builder-section { position: relative; }
+
+    .stages-track {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0;
+      margin-top: 4rem;
+      position: relative;
+    }
+
+    .stages-track::before {
+      content: '';
+      position: absolute;
+      top: 35px;
+      left: 40px;
+      right: 40px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--purple) 0%, var(--purple-light) 50%, var(--blue) 100%);
+      opacity: 0.2;
+    }
+
+    .stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+      cursor: default;
+    }
+
+    .stage-icon {
+      width: 70px;
+      height: 70px;
+      border-radius: 18px;
+      background: var(--gray-900);
+      border: 1px solid var(--gray-700);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.375rem;
+      margin-bottom: 1.25rem;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+    }
+
+    .stage:hover .stage-icon {
+      border-color: var(--purple);
+      background: rgba(139, 92, 246, 0.06);
+      box-shadow: 0 0 32px rgba(139, 92, 246, 0.15);
+      transform: translateY(-4px) scale(1.05);
+    }
+
+    .stage-icon .num {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      background: var(--gray-800);
+      border: 1px solid var(--gray-600);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.625rem;
+      font-weight: 500;
+      color: var(--gray-400);
+      transition: all 0.3s;
+    }
+
+    .stage:hover .stage-icon .num {
+      background: var(--purple-dark);
+      border-color: var(--purple);
+      color: white;
+    }
+
+    .stage-name {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--gray-200);
+      margin-bottom: 0.375rem;
+    }
+
+    .stage-desc {
+      font-size: 0.75rem;
+      color: var(--gray-500);
+      max-width: 110px;
+      line-height: 1.4;
+    }
+
+    /* ---- Architecture ---- */
+    .arch-card {
+      margin-top: 4rem;
+      background: var(--gray-950);
+      border: 1px solid var(--gray-800);
+      border-radius: 16px;
+      padding: 3rem;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .arch-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.2), transparent);
+    }
+
+    .arch-layers { display: flex; flex-direction: column; gap: 1.75rem; }
+
+    .arch-row {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .arch-label {
+      width: 100px;
+      flex-shrink: 0;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gray-500);
+      text-align: right;
+    }
+
+    .arch-items { display: flex; gap: 10px; flex-wrap: wrap; flex: 1; }
+
+    .arch-chip {
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      font-family: 'JetBrains Mono', monospace;
+      border: 1px solid;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .arch-chip:hover { transform: translateY(-3px); }
+
+    .ac-purple { background: rgba(139, 92, 246, 0.06); border-color: rgba(139, 92, 246, 0.18); color: var(--purple-light); }
+    .ac-purple:hover { border-color: var(--purple); box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1); }
+    .ac-green { background: rgba(16, 185, 129, 0.06); border-color: rgba(16, 185, 129, 0.18); color: var(--green); }
+    .ac-green:hover { border-color: var(--green); box-shadow: 0 4px 20px rgba(16, 185, 129, 0.1); }
+    .ac-blue { background: rgba(59, 130, 246, 0.06); border-color: rgba(59, 130, 246, 0.18); color: var(--blue); }
+    .ac-blue:hover { border-color: var(--blue); box-shadow: 0 4px 20px rgba(59, 130, 246, 0.1); }
+    .ac-amber { background: rgba(245, 158, 11, 0.06); border-color: rgba(245, 158, 11, 0.18); color: var(--amber); }
+    .ac-amber:hover { border-color: var(--amber); box-shadow: 0 4px 20px rgba(245, 158, 11, 0.1); }
+    .ac-gray { background: rgba(161, 161, 170, 0.04); border-color: rgba(161, 161, 170, 0.12); color: var(--gray-400); }
+    .ac-gray:hover { border-color: var(--gray-400); box-shadow: 0 4px 20px rgba(161, 161, 170, 0.06); }
+
+    .arch-pipe {
+      display: flex;
+      justify-content: center;
+      padding-left: 116px;
+    }
+
+    .arch-pipe .pipes { display: flex; gap: 2.5rem; }
+    .arch-pipe .pipe {
+      width: 1px;
+      height: 20px;
+      background: linear-gradient(to bottom, var(--gray-700), var(--gray-800));
+    }
+
+    /* Memory pills */
+    .memory-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .memory-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 20px;
+      background: var(--gray-950);
+      border: 1px solid var(--gray-800);
+      border-radius: 12px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--gray-300);
+      transition: all 0.3s;
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .memory-pill:hover {
+      border-color: var(--gray-600);
+      transform: translateY(-2px);
+    }
+
+    .mp-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .mp-scope {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6875rem;
+      color: var(--gray-500);
+      background: var(--gray-900);
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: auto;
+    }
+
+    /* ---- CTA ---- */
+    .cta {
+      text-align: center;
+      padding: 140px 2rem 100px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 600px;
+      background: radial-gradient(ellipse, rgba(139, 92, 246, 0.06), transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta .section-title {
+      max-width: 700px;
+      margin: 0 auto 1.25rem;
+    }
+
+    .cta .section-desc {
+      max-width: 480px;
+      margin: 0 auto 2.5rem;
+    }
+
+    .clone-block {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 24px;
+      background: rgba(9, 9, 11, 0.8);
+      border: 1px solid var(--gray-800);
+      border-radius: 12px;
+      margin-top: 2rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .clone-block::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.04), transparent);
+      background-size: 200% 100%;
+      animation: shimmer 3s ease-in-out infinite;
+    }
+
+    .clone-block:hover {
+      border-color: var(--gray-600);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .clone-block code {
+      font-size: 0.875rem;
+      color: var(--gray-300);
+      position: relative;
+    }
+
+    .clone-block .copy-tag {
+      font-size: 0.6875rem;
+      color: var(--gray-600);
+      font-family: 'DM Sans', sans-serif;
+      padding: 3px 8px;
+      background: var(--gray-900);
+      border-radius: 4px;
+      position: relative;
+      transition: all 0.2s;
+    }
+
+    /* ---- Footer ---- */
+    footer {
+      border-top: 1px solid var(--gray-800);
+      padding: 3rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-left { display: flex; align-items: center; gap: 2rem; }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 0.8125rem;
+      color: var(--gray-400);
+    }
+
+    .footer-brand .mark {
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+    }
+
+    .footer-links { display: flex; gap: 1.5rem; }
+    .footer-links a { font-size: 0.8125rem; color: var(--gray-500); transition: color 0.2s; }
+    .footer-links a:hover { color: var(--gray-300); }
+
+    .footer-right { font-size: 0.75rem; color: var(--gray-600); }
+
+    /* ---- Scroll reveal ---- */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    .reveal-stagger .feature-card,
+    .reveal-stagger .stage,
+    .reveal-stagger .memory-pill {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .reveal-stagger.visible .feature-card,
+    .reveal-stagger.visible .stage,
+    .reveal-stagger.visible .memory-pill {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal-stagger.visible .feature-card:nth-child(1),
+    .reveal-stagger.visible .stage:nth-child(1),
+    .reveal-stagger.visible .memory-pill:nth-child(1) { transition-delay: 0.05s; }
+    .reveal-stagger.visible .feature-card:nth-child(2),
+    .reveal-stagger.visible .stage:nth-child(2),
+    .reveal-stagger.visible .memory-pill:nth-child(2) { transition-delay: 0.1s; }
+    .reveal-stagger.visible .feature-card:nth-child(3),
+    .reveal-stagger.visible .stage:nth-child(3),
+    .reveal-stagger.visible .memory-pill:nth-child(3) { transition-delay: 0.15s; }
+    .reveal-stagger.visible .feature-card:nth-child(4),
+    .reveal-stagger.visible .stage:nth-child(4) { transition-delay: 0.2s; }
+    .reveal-stagger.visible .feature-card:nth-child(5),
+    .reveal-stagger.visible .stage:nth-child(5) { transition-delay: 0.25s; }
+    .reveal-stagger.visible .feature-card:nth-child(6),
+    .reveal-stagger.visible .stage:nth-child(6) { transition-delay: 0.3s; }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 1024px) {
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .stages-track { grid-template-columns: repeat(3, 1fr); gap: 2.5rem; }
+      .stages-track::before { display: none; }
+    }
+
+    @media (max-width: 768px) {
+      section { padding: 80px 1.5rem; }
+      .features-grid { grid-template-columns: 1fr; }
+      .stages-track { grid-template-columns: repeat(2, 1fr); gap: 2rem; }
+      .hero { padding: 100px 1.5rem 60px; min-height: auto; }
+      nav .links .nav-link { display: none; }
+      .arch-row { flex-direction: column; align-items: flex-start; }
+      .arch-label { text-align: left; width: auto; }
+      .arch-pipe { padding-left: 0; }
+      .footer-inner { flex-direction: column; gap: 1.5rem; text-align: center; }
+      .footer-left { flex-direction: column; }
+      .stats-bar { gap: 1.5rem; }
+      .stat-value { font-size: 1.25rem; }
+      .memory-row { flex-direction: column; }
+      .clone-block { flex-direction: column; gap: 8px; }
+    }
+
+    @media (max-width: 480px) {
+      .stages-track { grid-template-columns: 1fr; }
+      .hero-actions { flex-direction: column; }
+      .hero-actions a { width: 100%; justify-content: center; }
+      .stats-bar { flex-direction: column; gap: 1rem; }
+      .stat-sep { width: 40px; height: 1px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav id="nav" role="navigation" aria-label="Main navigation">
+    <div class="inner">
+      <a href="#" class="logo" aria-label="Agent OS home">
+        <div class="mark">A</div>
+        <span>Agent OS</span>
+      </a>
+      <div class="links">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#builder" class="nav-link">Builder</a>
+        <a href="#architecture" class="nav-link">Architecture</a>
+        <a href="https://github.com/Autonomous-sh/agent-builder" target="_blank" rel="noopener noreferrer" class="gh-nav-btn" aria-label="View Agent OS on GitHub">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          <span>Star on GitHub</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero" role="banner">
+    <div class="hero-bg" aria-hidden="true">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+      <div class="grid-lines"></div>
+      <div class="particles" id="particles"></div>
+    </div>
+
+    <div class="hero-content">
+      <div class="hero-badge fade-up d1">
+        <span class="pulse"></span>
+        Open Source &middot; MIT Licensed
+      </div>
+
+      <h1 class="fade-up d2">
+        Your agents forgot<br>everything. <em>Fix that.</em>
+      </h1>
+
+      <p class="subtitle fade-up d3">
+        Agent OS is the open-source workspace for building AI agent teams with <strong>persistent, self-editing memory</strong>. Agents that learn. Teams that share context. Memory that compounds.
+      </p>
+
+      <div class="hero-actions fade-up d4">
+        <a href="https://github.com/Autonomous-sh/agent-builder" target="_blank" rel="noopener noreferrer" class="btn-primary">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          Get Started
+        </a>
+        <a href="#builder" class="btn-ghost">
+          See how it works &darr;
+        </a>
+      </div>
+
+      <div class="terminal-wrap scale-in d5">
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+            <span class="title">~/projects</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line d5"><span class="prompt">$</span> <span class="cmd">git clone https://github.com/Autonomous-sh/agent-builder</span></div>
+            <div class="line d6"><span class="prompt">$</span> <span class="cmd">cd agent-builder && npm i && npm run dev</span></div>
+            <div class="line d7">&nbsp;</div>
+            <div class="line d7"><span class="success">&nbsp; &#9656; Ready</span> <span class="dim">on</span> <span class="info">http://localhost:3000</span></div>
+            <div class="line d8">&nbsp;</div>
+            <div class="line d8"><span class="comment">&nbsp; # Build agents through conversation</span></div>
+            <div class="line d9"><span class="comment">&nbsp; # Deploy with persistent memory</span></div>
+            <div class="line d10"><span class="comment">&nbsp; # Coordinate multi-agent teams</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-bar fade-up d8">
+        <div class="stat">
+          <div class="stat-value">519</div>
+          <div class="stat-label">Tests passing</div>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat">
+          <div class="stat-value">33</div>
+          <div class="stat-label">API routes</div>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat">
+          <div class="stat-value">11</div>
+          <div class="stat-label">Data models</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="divider"></div>
+
+  <!-- Features -->
+  <section id="features" aria-labelledby="features-title">
+    <div class="reveal">
+      <div class="section-label">Capabilities</div>
+      <h2 class="section-title" id="features-title">Stop rebuilding agents<br>from scratch</h2>
+      <p class="section-desc">Your agents lose context every session. They can't share knowledge. They forget what you told them yesterday. Agent OS fixes the entire stack.</p>
+    </div>
+
+    <div class="features-grid reveal-stagger">
+      <article class="feature-card">
+        <div class="feature-icon fi-purple" aria-hidden="true">&#129504;</div>
+        <h3>Self-Editing Memory</h3>
+        <p>Agents decide what to remember and where to store it. Persona knowledge, project decisions, craft expertise &mdash; all categorized and persisted automatically via Letta.</p>
+      </article>
+      <article class="feature-card">
+        <div class="feature-icon fi-green" aria-hidden="true">&#128101;</div>
+        <h3>Multi-Agent Teams</h3>
+        <p>Specialized agents share context through four shared memory blocks: project, decisions, task board, and brand. Real coordination, not prompt chaining.</p>
+      </article>
+      <article class="feature-card">
+        <div class="feature-icon fi-blue" aria-hidden="true">&#128295;</div>
+        <h3>MCP Tool Integration</h3>
+        <p>Filesystem, git, browser, Jira, Vercel &mdash; five presets out of the box plus custom MCP servers. Sandboxed execution. Full audit trail.</p>
+      </article>
+      <article class="feature-card">
+        <div class="feature-icon fi-amber" aria-hidden="true">&#9889;</div>
+        <h3>Deploy in One Click</h3>
+        <p>Every agent gets a public URL. Deployments snapshot the full config and Letta state. Pause, resume, redeploy &mdash; no infrastructure to manage.</p>
+      </article>
+      <article class="feature-card">
+        <div class="feature-icon fi-purple" aria-hidden="true">&#128172;</div>
+        <h3>Streaming Runtime</h3>
+        <p>SSE streaming with inline tool call visualization, reasoning traces, and real-time memory update indicators. Hybrid Claude + Letta backend.</p>
+      </article>
+      <article class="feature-card">
+        <div class="feature-icon fi-green" aria-hidden="true">&#128230;</div>
+        <h3>Portable & Open</h3>
+        <p>Export agents as provider-agnostic Markdown and YAML. Validated configs, no vendor lock-in. Runs locally on SQLite &mdash; no cloud required.</p>
+      </article>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- Builder -->
+  <section id="builder" class="builder-section" aria-labelledby="builder-title">
+    <div class="reveal">
+      <div class="section-label">Builder</div>
+      <h2 class="section-title" id="builder-title">Six conversations.<br>One deployed agent.</h2>
+      <p class="section-desc">No YAML files to write. No config to memorize. Talk through what your agent should do, and the builder handles the rest.</p>
+    </div>
+
+    <div class="stages-track reveal-stagger">
+      <div class="stage">
+        <div class="stage-icon">
+          <span class="num">1</span>
+          &#127919;
+        </div>
+        <div class="stage-name">Mission</div>
+        <div class="stage-desc">Define the purpose and scope</div>
+      </div>
+      <div class="stage">
+        <div class="stage-icon">
+          <span class="num">2</span>
+          &#129703;
+        </div>
+        <div class="stage-name">Identity</div>
+        <div class="stage-desc">Name, persona, and voice</div>
+      </div>
+      <div class="stage">
+        <div class="stage-icon">
+          <span class="num">3</span>
+          &#9889;
+        </div>
+        <div class="stage-name">Capabilities</div>
+        <div class="stage-desc">Tools, skills, and integrations</div>
+      </div>
+      <div class="stage">
+        <div class="stage-icon">
+          <span class="num">4</span>
+          &#128190;
+        </div>
+        <div class="stage-name">Memory</div>
+        <div class="stage-desc">Knowledge and context</div>
+      </div>
+      <div class="stage">
+        <div class="stage-icon">
+          <span class="num">5</span>
+          &#128276;
+        </div>
+        <div class="stage-name">Triggers</div>
+        <div class="stage-desc">When to activate</div>
+      </div>
+      <div class="stage">
+        <div class="stage-icon">
+          <span class="num">6</span>
+          &#128737;&#65039;
+        </div>
+        <div class="stage-name">Guardrails</div>
+        <div class="stage-desc">Safety boundaries</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- Architecture -->
+  <section id="architecture" aria-labelledby="arch-title">
+    <div class="reveal">
+      <div class="section-label">Architecture</div>
+      <h2 class="section-title" id="arch-title">Modern stack.<br>No compromises.</h2>
+      <p class="section-desc">Next.js 16 frontend, hybrid Claude + Letta runtime, optional Docker. The entire platform runs locally on your machine.</p>
+    </div>
+
+    <div class="arch-card reveal">
+      <div class="arch-layers">
+        <div class="arch-row">
+          <div class="arch-label">Frontend</div>
+          <div class="arch-items">
+            <div class="arch-chip ac-purple">Next.js 16</div>
+            <div class="arch-chip ac-purple">React 19</div>
+            <div class="arch-chip ac-purple">TailwindCSS</div>
+            <div class="arch-chip ac-purple">Zustand</div>
+            <div class="arch-chip ac-purple">TanStack Query</div>
+          </div>
+        </div>
+        <div class="arch-pipe"><div class="pipes"><div class="pipe"></div><div class="pipe"></div><div class="pipe"></div></div></div>
+        <div class="arch-row">
+          <div class="arch-label">API Layer</div>
+          <div class="arch-items">
+            <div class="arch-chip ac-blue">33 Route Handlers</div>
+            <div class="arch-chip ac-blue">SSE Streaming</div>
+            <div class="arch-chip ac-blue">Letta Proxy</div>
+          </div>
+        </div>
+        <div class="arch-pipe"><div class="pipes"><div class="pipe"></div><div class="pipe"></div></div></div>
+        <div class="arch-row">
+          <div class="arch-label">Runtime</div>
+          <div class="arch-items">
+            <div class="arch-chip ac-green">Claude API</div>
+            <div class="arch-chip ac-green">Letta (MemGPT)</div>
+            <div class="arch-chip ac-amber">MCP Servers</div>
+          </div>
+        </div>
+        <div class="arch-pipe"><div class="pipes"><div class="pipe"></div><div class="pipe"></div></div></div>
+        <div class="arch-row">
+          <div class="arch-label">Data</div>
+          <div class="arch-items">
+            <div class="arch-chip ac-gray">Prisma 7</div>
+            <div class="arch-chip ac-gray">SQLite</div>
+            <div class="arch-chip ac-gray">Letta Memory</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="reveal" style="margin-top: 4rem;">
+      <h3 style="font-family: 'DM Sans', sans-serif; font-size: 1.125rem; font-weight: 600; color: var(--gray-200); margin-bottom: 0.625rem;">Three scopes of memory</h3>
+      <p style="font-size: 0.9375rem; color: var(--gray-500); max-width: 480px; line-height: 1.6;">Agents learn what matters, store it in the right place, and share it with the right teammates.</p>
+    </div>
+
+    <div class="memory-row reveal-stagger">
+      <div class="memory-pill">
+        <div class="mp-dot" style="background: var(--purple);"></div>
+        Global memory
+        <span class="mp-scope">per agent</span>
+      </div>
+      <div class="memory-pill">
+        <div class="mp-dot" style="background: var(--blue);"></div>
+        Project memory
+        <span class="mp-scope">shared</span>
+      </div>
+      <div class="memory-pill">
+        <div class="mp-dot" style="background: var(--green);"></div>
+        Session memory
+        <span class="mp-scope">ephemeral</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- CTA -->
+  <section class="cta" aria-labelledby="cta-title">
+    <div class="reveal">
+      <div class="section-label" style="justify-content: center;">Get Started</div>
+      <h2 class="section-title" id="cta-title">Ship your first agent<br><em style="font-style: italic;">in five minutes</em></h2>
+      <p class="section-desc">Clone the repo. Run the dev server. Build an agent through conversation. Deploy it with a public URL. All local, all open source, all yours.</p>
+
+      <div class="hero-actions" style="margin-top: 2rem;">
+        <a href="https://github.com/Autonomous-sh/agent-builder" target="_blank" rel="noopener noreferrer" class="btn-primary">
+          <svg viewBox="0 0 16 16" aria-hidden="true" style="width:20px;height:20px;fill:currentColor;"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          View on GitHub
+        </a>
+        <a href="https://github.com/Autonomous-sh/agent-builder#readme" target="_blank" rel="noopener noreferrer" class="btn-ghost">
+          Read the docs
+        </a>
+      </div>
+
+      <div class="clone-block" id="clone-cmd" role="button" tabindex="0" aria-label="Copy clone command to clipboard">
+        <code>git clone https://github.com/Autonomous-sh/agent-builder</code>
+        <span class="copy-tag">click to copy</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer role="contentinfo">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <a href="https://autonomous.sh" target="_blank" rel="noopener noreferrer" class="footer-brand">
+          <div class="mark"></div>
+          Autonomous
+        </a>
+        <nav class="footer-links" aria-label="Footer navigation">
+          <a href="https://github.com/Autonomous-sh/agent-builder" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <a href="https://autonomous.sh" target="_blank" rel="noopener noreferrer">autonomous.sh</a>
+          <a href="https://github.com/Autonomous-sh/agent-builder/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a>
+        </nav>
+      </div>
+      <div class="footer-right">
+        Built by <a href="https://autonomous.sh" target="_blank" rel="noopener noreferrer" style="color: var(--gray-400); border-bottom: 1px solid var(--gray-700);">Autonomous</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ---- Scroll reveal with stagger ----
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.08, rootMargin: '0px 0px -60px 0px' });
+
+    document.querySelectorAll('.reveal, .reveal-stagger').forEach(el => revealObserver.observe(el));
+
+    // ---- Nav scroll effect ----
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 40);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    });
+
+    // ---- Smooth scroll ----
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          const offset = 80;
+          const pos = target.getBoundingClientRect().top + window.scrollY - offset;
+          window.scrollTo({ top: pos, behavior: 'smooth' });
+        }
+      });
+    });
+
+    // ---- Copy command ----
+    const cloneCmd = document.getElementById('clone-cmd');
+    if (cloneCmd) {
+      const handleCopy = () => {
+        navigator.clipboard.writeText('git clone https://github.com/Autonomous-sh/agent-builder && cd agent-builder && npm i && npm run dev');
+        const tag = cloneCmd.querySelector('.copy-tag');
+        tag.textContent = 'copied!';
+        tag.style.color = 'var(--green)';
+        tag.style.background = 'rgba(16, 185, 129, 0.1)';
+        setTimeout(() => {
+          tag.textContent = 'click to copy';
+          tag.style.color = '';
+          tag.style.background = '';
+        }, 2500);
+      };
+      cloneCmd.addEventListener('click', handleCopy);
+      cloneCmd.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCopy(); } });
+    }
+
+    // ---- Particles ----
+    const particleContainer = document.getElementById('particles');
+    if (particleContainer && window.innerWidth > 768) {
+      for (let i = 0; i < 20; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.animationDelay = Math.random() * 8 + 's';
+        p.style.animationDuration = (6 + Math.random() * 6) + 's';
+        p.style.width = p.style.height = (1 + Math.random() * 2) + 'px';
+        p.style.opacity = 0;
+        particleContainer.appendChild(p);
+      }
+    }
+  </script>
+
+</body>
+</html>

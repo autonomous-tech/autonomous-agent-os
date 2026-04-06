@@ -1,58 +1,105 @@
-import type { AgentOsApiClient } from "../api-client.js";
+import type { AgentOsClient } from "../api-client.js";
+
+const WRITABLE_LABELS = new Set([
+  "persona",
+  "scratchpad",
+  "decisions",
+  "task_board",
+  "brand",
+  "project",
+]);
+
+function assertWritableLabel(label: string): string | null {
+  if (!WRITABLE_LABELS.has(label)) {
+    return JSON.stringify({
+      error: `Block "${label}" is not writable through MCP tools`,
+      hint: `Writable blocks: ${[...WRITABLE_LABELS].join(", ")}`,
+    });
+  }
+  return null;
+}
 
 export async function handleGetMemoryBlocks(
-  client: AgentOsApiClient,
-  lettaAgentId: string
+  client: AgentOsClient,
+  args: { letta_agent_id: string }
 ): Promise<string> {
-  const blocks = await client.getMemoryBlocks(lettaAgentId);
-
-  if (blocks.length === 0) {
-    return "No memory blocks found.";
-  }
-
-  const lines: string[] = [];
-  for (const block of blocks) {
-    lines.push(`## ${block.label}`);
-    lines.push(block.value);
-    lines.push(`(${block.value.length}/${block.limit} chars)`);
-    lines.push("");
-  }
-  return lines.join("\n");
+  const blocks = await client.getMemoryBlocks(args.letta_agent_id);
+  return JSON.stringify(
+    blocks.map((b) => ({
+      label: b.label,
+      value: b.value,
+      limit: b.limit,
+      readOnly: b.readOnly,
+      usage: `${b.value.length}/${b.limit}`,
+    })),
+    null,
+    2
+  );
 }
 
 export async function handleCoreMemoryReplace(
-  client: AgentOsApiClient,
-  lettaAgentId: string,
-  args: { label: string; old_value: string; new_value: string }
+  client: AgentOsClient,
+  args: { letta_agent_id: string; label: string; old_text: string; new_text: string }
 ): Promise<string> {
-  const block = await client.getMemoryBlock(lettaAgentId, args.label);
+  const labelError = assertWritableLabel(args.label);
+  if (labelError) return labelError;
 
-  if (!block.value.includes(args.old_value)) {
-    return `Error: Could not find "${args.old_value}" in the ${args.label} block.`;
+  const block = await client.getMemoryBlock(args.letta_agent_id, args.label);
+
+  if (block.readOnly) {
+    return JSON.stringify({ error: `Block "${args.label}" is read-only` });
   }
 
-  const newValue = block.value.replace(args.old_value, args.new_value);
-
-  if (newValue.length > 10000) {
-    return `Error: Replacement would exceed the 10,000 character limit (result: ${newValue.length} chars).`;
+  if (!block.value.includes(args.old_text)) {
+    return JSON.stringify({
+      error: `Text not found in block "${args.label}"`,
+      hint: "Check the exact text — it must match character-for-character",
+    });
   }
 
-  await client.updateMemoryBlock(lettaAgentId, args.label, newValue);
-  return `Successfully updated ${args.label} block. Replaced "${args.old_value}" with "${args.new_value}".`;
+  const newValue = block.value.replace(args.old_text, args.new_text);
+
+  if (newValue.length > block.limit) {
+    return JSON.stringify({
+      error: `Replacement would exceed block limit (${newValue.length}/${block.limit})`,
+      hint: "Make the replacement shorter or remove other content first",
+    });
+  }
+
+  const updated = await client.updateMemoryBlock(args.letta_agent_id, args.label, newValue);
+  return JSON.stringify({
+    success: true,
+    label: updated.label,
+    usage: `${updated.value.length}/${updated.limit}`,
+  });
 }
 
 export async function handleCoreMemoryAppend(
-  client: AgentOsApiClient,
-  lettaAgentId: string,
-  args: { label: string; content: string }
+  client: AgentOsClient,
+  args: { letta_agent_id: string; label: string; text: string }
 ): Promise<string> {
-  const block = await client.getMemoryBlock(lettaAgentId, args.label);
-  const newValue = block.value + "\n" + args.content;
+  const labelError = assertWritableLabel(args.label);
+  if (labelError) return labelError;
 
-  if (newValue.length > 10000) {
-    return `Error: Append would exceed the 10,000 character limit (current: ${block.value.length}, adding: ${args.content.length + 1}).`;
+  const block = await client.getMemoryBlock(args.letta_agent_id, args.label);
+
+  if (block.readOnly) {
+    return JSON.stringify({ error: `Block "${args.label}" is read-only` });
   }
 
-  await client.updateMemoryBlock(lettaAgentId, args.label, newValue);
-  return `Successfully appended to ${args.label} block.`;
+  const newValue = block.value + "\n" + args.text;
+
+  if (newValue.length > block.limit) {
+    return JSON.stringify({
+      error: `Append would exceed block limit (${newValue.length}/${block.limit})`,
+      hint: "Use core_memory_replace to update existing content, or store in archival memory",
+    });
+  }
+
+  const updated = await client.updateMemoryBlock(args.letta_agent_id, args.label, newValue);
+  return JSON.stringify({
+    success: true,
+    label: updated.label,
+    usage: `${updated.value.length}/${updated.limit}`,
+  });
 }

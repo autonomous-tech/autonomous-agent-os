@@ -1,17 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
-// GET /api/agents/by-slug/[slug] — Lookup agent by slug
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     const { slug } = await params;
-    const agent = await prisma.agentProject.findUnique({ where: { slug } });
+
+    const agent = await prisma.agentProject.findUnique({
+      where: { slug },
+    });
 
     if (!agent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
+    }
+
+    let config = {};
+    try {
+      config = JSON.parse(agent.config);
+    } catch {
+      // Malformed config column
     }
 
     return NextResponse.json({
@@ -19,18 +28,12 @@ export async function GET(
       name: agent.name,
       slug: agent.slug,
       description: agent.description,
-      status: agent.status,
-      config: JSON.parse(agent.config),
+      config,
       lettaAgentId: agent.lettaAgentId,
+      status: agent.status,
     });
   } catch (error) {
-    console.error(
-      "Failed to get agent by slug:",
-      error instanceof Error ? error.message : "Unknown error"
-    );
-    return NextResponse.json(
-      { error: "Failed to get agent" },
-      { status: 500 }
-    );
+    console.error("[by-slug] Error:", error instanceof Error ? error.message : error);
+    return NextResponse.json({ error: "Failed to resolve agent" }, { status: 500 });
   }
 }

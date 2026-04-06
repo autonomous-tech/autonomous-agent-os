@@ -1,7 +1,7 @@
 {
   "name": "agent-os-mcp",
   "version": "0.1.0",
-  "description": "MCP server bridging Claude Code to Agent OS persistent memory via Letta",
+  "description": "MCP server bridging Claude Code (and other runtimes) to Agent OS persistent memory via Letta",
   "type": "module",
   "bin": {
     "agent-os-mcp": "./bin/agent-os-mcp.mjs"
@@ -9,14 +9,16 @@
   "main": "./dist/index.js",
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.1",
-    "zod": "^3.24.4"
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "typescript": "^5.7.0",
+    "@types/node": "^20.0.0"
   },
   "files": [
     "dist",

@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { parseConfig } from "./config.js";
-import { AgentOsApiClient } from "./api-client.js";
+import { AgentOsClient } from "./api-client.js";
 import { handleLoadContext } from "./tools/context.js";
 import {
   handleGetMemoryBlocks,
@@ -13,60 +13,26 @@ import {
   handleArchivalSearch,
   handleArchivalInsert,
 } from "./tools/archival.js";
+import { handleGetTeamContext } from "./tools/team.js";
 import { handleSyncSession } from "./tools/sync.js";
 
-// ── Shared helpers ────────────────────────────────────────────────────
+type TextResult = { content: Array<{ type: "text"; text: string }>; isError?: true };
 
-type ToolResult = { content: [{ type: "text"; text: string }]; isError?: true };
-
-function textResult(text: string): ToolResult {
-  return { content: [{ type: "text", text }] };
+function wrapHandler<T>(handler: (args: T) => Promise<string>): (args: T) => Promise<TextResult> {
+  return async (args: T) => {
+    try {
+      const text = await handler(args);
+      return { content: [{ type: "text", text }] };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { content: [{ type: "text", text: `Error: ${message}` }], isError: true };
+    }
+  };
 }
 
-function errorResult(error: unknown): ToolResult {
-  const message = error instanceof Error ? error.message : String(error);
-  return { content: [{ type: "text", text: `Error: ${message}` }], isError: true };
-}
-
-// Cached agent info with TTL to avoid stale data
-let cachedAgentId: string | null = null;
-let cachedLettaAgentId: string | null = null;
-let cacheTimestamp = 0;
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
-function cacheAgentInfo(agent: { id: string; lettaAgentId: string | null }): void {
-  cachedAgentId = agent.id;
-  cachedLettaAgentId = agent.lettaAgentId;
-  cacheTimestamp = Date.now();
-}
-
-async function ensureAgentInfo(client: AgentOsApiClient) {
-  const isExpired = Date.now() - cacheTimestamp > CACHE_TTL_MS;
-  if (!cachedAgentId || isExpired) {
-    cacheAgentInfo(await client.getAgentBySlug());
-  }
-  return { agentId: cachedAgentId!, lettaAgentId: cachedLettaAgentId };
-}
-
-function requireLetta(lettaAgentId: string | null): string {
-  if (!lettaAgentId) {
-    throw new Error(
-      "This agent does not have Letta memory enabled. Deploy the agent with Letta first."
-    );
-  }
-  return lettaAgentId;
-}
-
-async function ensureLetta(client: AgentOsApiClient): Promise<string> {
-  const { lettaAgentId } = await ensureAgentInfo(client);
-  return requireLetta(lettaAgentId);
-}
-
-// ── Server setup ──────────────────────────────────────────────────────
-
-export async function startServer() {
+export async function startServer(): Promise<void> {
   const config = parseConfig();
-  const client = new AgentOsApiClient(config.agentOsUrl, config.agentSlug);
+  const apiClient = new AgentOsClient(config);
 
   const server = new McpServer({
     name: "agent-os",
@@ -75,112 +41,96 @@ export async function startServer() {
 
   server.tool(
     "load_context",
-    "Load your full agent identity, mission, and current memory state. Call this at the start of every session.",
-    {},
-    async () => {
-      try {
-        const result = await handleLoadContext(client);
-        cacheAgentInfo(result.agent);
-        return textResult(result.content);
-      } catch (error) {
-        return errorResult(error);
-      }
-    }
+    "Load the full agent context: identity, memory blocks, team info, and archival highlights. Call this at the start of every session to bootstrap your persistent memory.",
+    { agent_slug: z.string().describe("The agent's slug identifier in Agent OS") },
+    wrapHandler((args) => handleLoadContext(apiClient, args))
   );
 
   server.tool(
     "get_memory_blocks",
-    "Read all current memory block values.",
-    {},
-    async () => {
-      try {
-        return textResult(await handleGetMemoryBlocks(client, await ensureLetta(client)));
-      } catch (error) {
-        return errorResult(error);
-      }
-    }
+    "Read all current memory block values for this agent. Returns persona, scratchpad, memory_instructions, and any shared team blocks.",
+    { letta_agent_id: z.string().describe("The Letta agent ID (from load_context)") },
+    wrapHandler((args) => handleGetMemoryBlocks(apiClient, args))
   );
 
   server.tool(
     "core_memory_replace",
-    "Find and replace text in a memory block. Use this to update existing information.",
+    "Find and replace text in a memory block. Use this for surgical updates — e.g., updating a user preference or correcting a project decision.",
     {
-      label: z.string().describe("The memory block label (e.g. 'persona', 'decisions', 'scratchpad')"),
-      old_value: z.string().describe("The exact text to find and replace"),
-      new_value: z.string().describe("The new text to replace it with"),
+      letta_agent_id: z.string().describe("The Letta agent ID"),
+      label: z.string().describe("Memory block label (e.g. 'persona', 'decisions', 'scratchpad')"),
+      old_text: z.string().describe("The exact text to find in the block"),
+      new_text: z.string().describe("The replacement text"),
     },
-    async (args) => {
-      try {
-        return textResult(await handleCoreMemoryReplace(client, await ensureLetta(client), args));
-      } catch (error) {
-        return errorResult(error);
-      }
-    }
+    wrapHandler((args) => handleCoreMemoryReplace(apiClient, args))
   );
 
   server.tool(
     "core_memory_append",
-    "Append text to a memory block. Use this to add new information.",
+    "Append text to the end of a memory block. Use this to log a new decision, add a task update, or record something learned. Be concise — blocks have character limits.",
     {
-      label: z.string().describe("The memory block label (e.g. 'persona', 'decisions', 'scratchpad')"),
-      content: z.string().describe("The text to append to the block"),
+      letta_agent_id: z.string().describe("The Letta agent ID"),
+      label: z.string().describe("Memory block label (e.g. 'decisions', 'task_board', 'scratchpad')"),
+      text: z.string().describe("Text to append to the block"),
     },
-    async (args) => {
-      try {
-        return textResult(await handleCoreMemoryAppend(client, await ensureLetta(client), args));
-      } catch (error) {
-        return errorResult(error);
-      }
-    }
+    wrapHandler((args) => handleCoreMemoryAppend(apiClient, args))
   );
 
   server.tool(
     "archival_search",
-    "Search your long-term archival memory using semantic search.",
+    "Semantic search over your long-term archival memory. Use this to recall past learnings, craft knowledge, skill patterns, or previously stored information.",
     {
-      query: z.string().describe("The search query"),
+      letta_agent_id: z.string().describe("The Letta agent ID"),
+      query: z.string().describe("Natural language search query"),
     },
-    async (args) => {
-      try {
-        return textResult(await handleArchivalSearch(client, await ensureLetta(client), args));
-      } catch (error) {
-        return errorResult(error);
-      }
-    }
+    wrapHandler((args) => handleArchivalSearch(apiClient, args))
   );
 
   server.tool(
     "archival_insert",
-    "Store important learnings permanently in your archival memory.",
+    "Store information in long-term archival memory. Use this for craft knowledge, techniques, patterns, and learnings that should persist across sessions.",
     {
-      content: z.string().describe("The text to store in archival memory"),
+      letta_agent_id: z.string().describe("The Letta agent ID"),
+      text: z.string().describe("The text content to store (max 50000 chars)"),
+      tags: z.array(z.string()).optional().describe("Optional tags for categorization"),
     },
-    async (args) => {
-      try {
-        return textResult(await handleArchivalInsert(client, await ensureLetta(client), args));
-      } catch (error) {
-        return errorResult(error);
-      }
-    }
+    wrapHandler((args) => handleArchivalInsert(apiClient, args))
+  );
+
+  server.tool(
+    "get_team_context",
+    "Get the team context: members, roles, shared project blocks. Use this to understand who your teammates are and what the team is working on.",
+    { agent_slug: z.string().describe("Your agent slug (to find your team)") },
+    wrapHandler((args) => handleGetTeamContext(apiClient, args))
   );
 
   server.tool(
     "sync_session",
-    "Send a session summary to Agent OS for memory extraction and persistence. Call this at the end of a session.",
+    "Send a session summary to Agent OS for server-side memory extraction. Agent OS will analyze, categorize learnings, and write them to the appropriate memory blocks.",
     {
-      summary: z.string().describe("A summary of what happened during this session, including key decisions and learnings"),
+      agent_slug: z.string().describe("Your agent slug"),
+      summary: z.string().describe("Summary of what happened in this session"),
+      decisions: z.array(z.string()).optional().describe("Project decisions made"),
+      preferences: z.array(z.string()).optional().describe("User preferences observed"),
+      knowledge: z.array(z.string()).optional().describe("Craft knowledge learned"),
+      task_updates: z.array(z.string()).optional().describe("Task status changes"),
     },
-    async (args) => {
-      try {
-        const { agentId } = await ensureAgentInfo(client);
-        if (!agentId) throw new Error("Agent not found");
-        return textResult(await handleSyncSession(client, agentId, args));
-      } catch (error) {
-        return errorResult(error);
-      }
-    }
+    wrapHandler((args) => handleSyncSession(apiClient, args))
   );
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
+
+  console.error(`[agent-os-mcp] Connected to Agent OS at ${config.baseUrl}`);
+  if (config.defaultSlug) {
+    console.error(`[agent-os-mcp] Default agent: ${config.defaultSlug}`);
+  }
+}
+
+// Auto-start when imported directly (not via bin/)
+if (process.argv[1]?.endsWith("index.js") || process.argv[1]?.endsWith("index.ts")) {
+  startServer().catch((err) => {
+    console.error("[agent-os-mcp] Fatal:", err);
+    process.exit(1);
+  });
 }

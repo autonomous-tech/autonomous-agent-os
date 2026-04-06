@@ -1,60 +1,57 @@
-import type { AgentOsApiClient } from "../api-client.js";
-
-export interface LoadContextResult {
-  content: string;
-  agent: { id: string; lettaAgentId: string | null };
-}
+import type { AgentOsClient } from "../api-client.js";
 
 export async function handleLoadContext(
-  client: AgentOsApiClient
-): Promise<LoadContextResult> {
-  const agent = await client.getAgentBySlug();
+  client: AgentOsClient,
+  args: { agent_slug: string }
+): Promise<string> {
+  const agent = await client.getAgentBySlug(args.agent_slug);
 
-  const sections: string[] = [
-    `# Agent: ${agent.name}`,
-    `Slug: ${agent.slug}`,
-    `Status: ${agent.status}`,
-  ];
-
-  const config = agent.config;
-
-  const identity = config.identity as Record<string, unknown> | undefined;
-  if (identity) {
-    sections.push(`\n## Identity`);
-    if (identity.vibe) sections.push(`Personality: ${identity.vibe}`);
-    if (identity.tone) sections.push(`Tone: ${identity.tone}`);
+  if (!agent.lettaAgentId) {
+    return JSON.stringify({
+      error: "Agent has no Letta deployment. Deploy the agent in Agent OS first.",
+      agent: { name: agent.name, slug: agent.slug, status: agent.status },
+    });
   }
 
-  // Mission
-  const mission = config.mission as Record<string, unknown> | undefined;
-  if (mission) {
-    sections.push(`\n## Mission`);
-    if (mission.description) sections.push(String(mission.description));
-    if (Array.isArray(mission.tasks) && mission.tasks.length > 0) {
-      sections.push(`\nKey Tasks:`);
-      for (const task of mission.tasks) {
-        sections.push(`- ${task}`);
-      }
-    }
-  }
+  const [blocks, team] = await Promise.all([
+    client.getMemoryBlocks(agent.lettaAgentId),
+    client.getTeamForAgent(args.agent_slug).catch(() => null),
+  ]);
 
-  // Memory blocks (if Letta is enabled)
-  if (agent.lettaAgentId) {
-    try {
-      const blocks = await client.getMemoryBlocks(agent.lettaAgentId);
-      sections.push(`\n## Current Memory`);
-      for (const block of blocks) {
-        sections.push(`\n### ${block.label}`);
-        sections.push(block.value);
-      }
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      sections.push(`\n## Memory\nFailed to load memory blocks: ${msg}`);
-    }
-  }
-
-  return {
-    content: sections.join("\n"),
-    agent: { id: agent.id, lettaAgentId: agent.lettaAgentId },
+  const context: Record<string, unknown> = {
+    agent: {
+      name: agent.name,
+      slug: agent.slug,
+      description: agent.description,
+      lettaAgentId: agent.lettaAgentId,
+    },
+    identity: agent.config,
+    memoryBlocks: blocks.map((b) => ({
+      label: b.label,
+      value: b.value,
+      limit: b.limit,
+      readOnly: b.readOnly,
+    })),
   };
+
+  if (team) {
+    context.team = {
+      name: team.name,
+      description: team.description,
+      members: team.members.map((m) => ({
+        name: m.agent.name,
+        slug: m.agent.slug,
+        role: m.role,
+        description: m.agent.description,
+      })),
+      activeProjects: team.projects
+        .filter((p) => p.status === "active")
+        .map((p) => ({
+          name: p.name,
+          brief: p.brief,
+        })),
+    };
+  }
+
+  return JSON.stringify(context, null, 2);
 }

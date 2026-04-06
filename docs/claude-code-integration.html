@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent OS + Claude Code Integration Guide | Autonomous</title>
+  <meta name="description" content="Connect Agent OS persistent memory to Claude Code. Build agents in Agent OS, run them natively in Claude Code with Letta-backed memory via MCP.">
+  <style>
+    /* Autonomous Brand — Dark Mode First */
+    :root {
+      --black: #0a0a0a;
+      --gray-950: #09090b;
+      --gray-900: #18181b;
+      --gray-800: #27272a;
+      --gray-700: #3f3f46;
+      --gray-600: #52525b;
+      --gray-500: #71717a;
+      --gray-400: #a1a1aa;
+      --gray-300: #d4d4d8;
+      --gray-200: #e4e4e7;
+      --gray-100: #f4f4f5;
+      --white: #fafafa;
+      --purple: #8b5cf6;
+      --purple-dark: #6d28d9;
+      --purple-light: #a78bfa;
+      --green: #10b981;
+      --blue: #3b82f6;
+      --amber: #f59e0b;
+      --red: #ef4444;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--black);
+      color: var(--gray-100);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Layout */
+    .container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+    .hero { padding: 80px 0 48px; text-align: center; }
+    .section { padding: 48px 0; border-top: 1px solid var(--gray-800); }
+
+    /* Typography */
+    h1 { font-size: 2.25rem; font-weight: 700; color: var(--white); line-height: 1.2; margin-bottom: 16px; }
+    h2 { font-size: 1.5rem; font-weight: 600; color: var(--white); margin-bottom: 16px; }
+    h3 { font-size: 1.125rem; font-weight: 600; color: var(--gray-100); margin-bottom: 12px; }
+    p { color: var(--gray-300); margin-bottom: 16px; }
+    .subtitle { font-size: 1.125rem; color: var(--gray-400); max-width: 640px; margin: 0 auto 32px; }
+
+    /* Badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      background: rgba(139, 92, 246, 0.15);
+      color: var(--purple-light);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      margin-bottom: 24px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--gray-900);
+      border: 1px solid var(--gray-800);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .card:hover { border-color: var(--gray-700); }
+    .card h3 { margin-bottom: 8px; }
+    .card p:last-child { margin-bottom: 0; }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    /* Code blocks */
+    pre {
+      background: var(--gray-950);
+      border: 1px solid var(--gray-800);
+      border-radius: 8px;
+      padding: 20px;
+      overflow-x: auto;
+      margin-bottom: 16px;
+      font-size: 0.875rem;
+      line-height: 1.6;
+    }
+    code {
+      font-family: 'Fira Code', 'JetBrains Mono', 'Menlo', monospace;
+      color: var(--gray-300);
+    }
+    p code, li code {
+      background: var(--gray-900);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      color: var(--purple-light);
+    }
+
+    /* Lists */
+    ul, ol { padding-left: 20px; margin-bottom: 16px; }
+    li { color: var(--gray-300); margin-bottom: 8px; }
+    li strong { color: var(--gray-100); }
+
+    /* Steps */
+    .step {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .step-num {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--purple);
+      color: var(--white);
+      font-weight: 600;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .step-content { flex: 1; }
+    .step-content h3 { margin-bottom: 4px; }
+    .step-content p:last-child { margin-bottom: 0; }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+      font-size: 0.875rem;
+    }
+    th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--gray-900);
+      color: var(--gray-300);
+      font-weight: 500;
+      border-bottom: 1px solid var(--gray-700);
+    }
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--gray-800);
+      color: var(--gray-300);
+    }
+    td code { font-size: 0.8em; }
+
+    /* Diagram */
+    .diagram {
+      background: var(--gray-950);
+      border: 1px solid var(--gray-800);
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 16px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.8rem;
+      line-height: 1.8;
+      color: var(--gray-400);
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .diagram .highlight { color: var(--purple-light); }
+    .diagram .green { color: var(--green); }
+    .diagram .blue { color: var(--blue); }
+    .diagram .amber { color: var(--amber); }
+
+    /* Callout */
+    .callout {
+      background: rgba(139, 92, 246, 0.08);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+    .callout p { color: var(--gray-300); margin-bottom: 0; }
+    .callout strong { color: var(--purple-light); }
+
+    .callout-amber {
+      background: rgba(245, 158, 11, 0.08);
+      border-color: rgba(245, 158, 11, 0.2);
+    }
+    .callout-amber strong { color: var(--amber); }
+
+    /* Nav */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(10, 10, 10, 0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--gray-800);
+      padding: 12px 0;
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-brand {
+      font-weight: 600;
+      color: var(--white);
+      text-decoration: none;
+      font-size: 0.875rem;
+    }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a {
+      color: var(--gray-400);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--white); }
+
+    /* Footer */
+    .footer {
+      padding: 48px 0;
+      border-top: 1px solid var(--gray-800);
+      text-align: center;
+    }
+    .footer p { color: var(--gray-500); font-size: 0.875rem; }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      h1 { font-size: 1.75rem; }
+      .hero { padding: 48px 0 32px; }
+      .section { padding: 32px 0; }
+      pre { padding: 16px; font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="nav-brand">Agent OS</a>
+    <div class="nav-links">
+      <a href="#setup">Setup</a>
+      <a href="#workflow">Workflow</a>
+      <a href="#memory">Memory</a>
+      <a href="#tools">MCP tools</a>
+      <a href="#teams">Teams</a>
+      <a href="#troubleshooting">Troubleshooting</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<header class="hero">
+  <div class="container">
+    <div class="badge">Claude Code Integration</div>
+    <h1>Persistent memory for Claude Code agents</h1>
+    <p class="subtitle">Build agents in Agent OS. Run them in Claude Code. Memory follows everywhere. Same Letta-backed blocks, archival search, and team context — accessible via MCP.</p>
+  </div>
+</header>
+
+<main class="container">
+
+<!-- Why -->
+<section class="section">
+  <h2>What this solves</h2>
+  <p>Claude Code's native agents use flat <code>MEMORY.md</code> files. No structure, no search, no shared state across teams. Agent OS fixes this.</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3>Structured memory</h3>
+      <p>Persona block, scratchpad, memory instructions — each with character limits and purpose. Not one flat file.</p>
+    </div>
+    <div class="card">
+      <h3>Shared team blocks</h3>
+      <p>Decisions, task board, brand guide — visible to all team members. Update from one agent, every agent sees it.</p>
+    </div>
+    <div class="card">
+      <h3>Semantic search</h3>
+      <p>Archival memory with vector search. Store craft knowledge, retrieve by meaning. Unlimited storage.</p>
+    </div>
+    <div class="card">
+      <h3>Auto-categorization</h3>
+      <p>Project decisions, user preferences, craft knowledge — sorted into the right block automatically on session end.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Setup -->
+<section class="section" id="setup">
+  <h2>Setup</h2>
+  <p>Five minutes from zero to persistent-memory agents in Claude Code.</p>
+
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <h3>Start Agent OS</h3>
+      <p>Agent OS is the web UI where you build and manage agents.</p>
+      <pre><code>cd agent-builder
+npm install
+npm run dev                # http://localhost:3000
+docker compose up -d       # Letta server (optional but recommended)</code></pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <h3>Build your agents</h3>
+      <p>Use the 6-stage builder or quick-create. Define mission, identity, capabilities, memory, triggers, guardrails.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <h3>Deploy to Letta</h3>
+      <p>Click "Deploy" in the workspace. This creates the Letta agent with memory blocks. If you're using teams, deploy the team to create shared blocks.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <h3>Export to Claude Code</h3>
+      <p>For teams, use the API. For individual agents, use the agent endpoint.</p>
+      <pre><code># Export a team (generates all files)
+curl -X POST http://localhost:3000/api/teams/{teamId}/generate-claude-code
+
+# Export a single agent definition
+curl http://localhost:3000/api/agents/{agentId}/claude-code-agent</code></pre>
+      <p>Copy the generated files to your project directory.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">5</div>
+    <div class="step-content">
+      <h3>Add the MCP server</h3>
+      <p>This gives Claude Code access to Agent OS memory.</p>
+      <pre><code># Option A: CLI
+claude mcp add agent-os -s project -- npx agent-os-mcp --url http://localhost:3000
+
+# Option B: .mcp.json (checked into project)
+{
+  "mcpServers": {
+    "agent-os": {
+      "command": "npx",
+      "args": ["agent-os-mcp", "--url", "http://localhost:3000"]
+    }
+  }
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="callout">
+    <p><strong>That's it.</strong> Open Claude Code in your project directory. Your agents appear in <code>/agents</code>. They load memory from Agent OS on every session start.</p>
+  </div>
+</section>
+
+<!-- Workflow -->
+<section class="section" id="workflow">
+  <h2>Workflow</h2>
+
+  <div class="diagram"><span class="highlight">Agent OS (web UI)</span>                          <span class="blue">Claude Code (runtime)</span>
+    |                                           |
+    |  1. Build agents (6-stage builder)        |
+    |  2. Deploy team (creates Letta memory)    |
+    |  3. Export to Claude Code ──────────────> |  Generated files land here
+    |                                           |  4. Agent starts, calls load_context
+    |                  <──── MCP ──────────────>|  5. Memory loads from Letta
+    |                                           |  6. Agent codes, uses tools
+    |                  <──── MCP ──────────────>|  7. Optional: mid-session memory writes
+    |                                           |  8. SubagentStop hook fires
+    |  9. sync_session extracts learnings  <──  |
+    |  10. Writes to Letta blocks               |
+    |  11. Review + refine in web UI            |
+    |                                           |
+    |  12. Re-export if agent configs changed   |</div>
+
+  <h3>The loop</h3>
+  <ol>
+    <li><strong>Build</strong> agents in Agent OS (conversational builder, memory config, team setup)</li>
+    <li><strong>Deploy</strong> to Letta (creates agents with structured memory blocks)</li>
+    <li><strong>Export</strong> to Claude Code (generates subagent definitions, MCP config, hooks)</li>
+    <li><strong>Work</strong> in Claude Code (agents load context, use memory tools, code normally)</li>
+    <li><strong>Sync</strong> automatically (SubagentStop hooks push session data back to Agent OS)</li>
+    <li><strong>Review</strong> in Agent OS (see updated memory, tweak configs, re-export)</li>
+  </ol>
+</section>
+
+<!-- Memory -->
+<section class="section" id="memory">
+  <h2>How memory works</h2>
+
+  <h3>The problem</h3>
+  <p>When agents run through Letta directly (Agent OS web UI), memory is automatic. Letta provides native tools and the model sees its memory on every turn.</p>
+  <p>When agents run in Claude Code, Letta is NOT in the inference loop. The MCP server bridges this gap.</p>
+
+  <table>
+    <thead>
+      <tr><th>Capability</th><th>Letta native (web UI)</th><th>Claude Code (via MCP)</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Memory replace</td>
+        <td><code>core_memory_replace</code> (built-in)</td>
+        <td><code>mcp__agent-os__core_memory_replace</code></td>
+      </tr>
+      <tr>
+        <td>Archival insert</td>
+        <td><code>archival_memory_insert</code> (built-in)</td>
+        <td><code>mcp__agent-os__archival_insert</code></td>
+      </tr>
+      <tr>
+        <td>Memory in context</td>
+        <td>Injected automatically by Letta</td>
+        <td><code>load_context</code> tool at session start</td>
+      </tr>
+      <tr>
+        <td>Categorization</td>
+        <td>Prompt in system message</td>
+        <td>Same prompt in subagent <code>.md</code></td>
+      </tr>
+      <tr>
+        <td>Fallback sync</td>
+        <td>N/A (always in loop)</td>
+        <td><code>sync_session</code> + server-side extraction</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Memory scopes</h3>
+  <div class="card-grid">
+    <div class="card">
+      <h3>Global (per agent)</h3>
+      <ul style="margin-bottom:0">
+        <li><strong>Persona</strong> (5000 chars) — identity, preferences, rules</li>
+        <li><strong>Scratchpad</strong> (5000 chars) — working notes</li>
+        <li><strong>Archival</strong> (unlimited) — craft knowledge, skills</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Project (shared across team)</h3>
+      <ul style="margin-bottom:0">
+        <li><strong>Decisions</strong> (8000 chars) — requirements, constraints</li>
+        <li><strong>Task board</strong> (6000 chars) — sprint tasks, blockers</li>
+        <li><strong>Project</strong> (2000, read-only) — overview, goals</li>
+        <li><strong>Brand</strong> (10000, read-only) — design system</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Server-side extraction</h3>
+  <p>Since Claude Code agents are focused on coding, they may not call memory tools reliably. The server-side fallback handles this:</p>
+  <ol>
+    <li><code>sync_session</code> sends a summary to Agent OS</li>
+    <li>Agent OS calls Claude with an extraction prompt</li>
+    <li>Learnings are categorized: decisions, preferences, knowledge, task updates</li>
+    <li>Each category is written to the appropriate Letta block</li>
+    <li>Next session, <code>load_context</code> returns the updated memory</li>
+  </ol>
+</section>
+
+<!-- MCP Tools -->
+<section class="section" id="tools">
+  <h2>MCP tools reference</h2>
+  <p>Eight tools available via the <code>agent-os</code> MCP server.</p>
+
+  <table>
+    <thead>
+      <tr><th>Tool</th><th>Purpose</th><th>When to call</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>load_context</code></td>
+        <td>Full agent identity + memory blocks + team context</td>
+        <td>Session start</td>
+      </tr>
+      <tr>
+        <td><code>get_memory_blocks</code></td>
+        <td>Read current memory block values</td>
+        <td>Anytime</td>
+      </tr>
+      <tr>
+        <td><code>core_memory_replace</code></td>
+        <td>Find-and-replace text in a block</td>
+        <td>Correct a fact, update a preference</td>
+      </tr>
+      <tr>
+        <td><code>core_memory_append</code></td>
+        <td>Append text to a block</td>
+        <td>Log a decision, add a task update</td>
+      </tr>
+      <tr>
+        <td><code>archival_search</code></td>
+        <td>Semantic search over archival memory</td>
+        <td>Recall past knowledge</td>
+      </tr>
+      <tr>
+        <td><code>archival_insert</code></td>
+        <td>Store in long-term archival memory</td>
+        <td>Save craft knowledge, patterns</td>
+      </tr>
+      <tr>
+        <td><code>get_team_context</code></td>
+        <td>Team members, roles, shared blocks</td>
+        <td>Understand team state</td>
+      </tr>
+      <tr>
+        <td><code>sync_session</code></td>
+        <td>Send summary for server-side extraction</td>
+        <td>Session end (or via hook)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout-amber callout">
+    <p><strong>Tip:</strong> You don't need to call every tool. The memory protocol in each subagent's <code>.md</code> file tells the agent when to use each tool. The SubagentStop hook handles <code>sync_session</code> automatically.</p>
+  </div>
+</section>
+
+<!-- Teams -->
+<section class="section" id="teams">
+  <h2>Team export</h2>
+  <p>Export an entire Agent OS team as Claude Code subagents. Each member gets their own <code>.md</code> definition with the right tools, memory protocol, and guardrails.</p>
+
+  <h3>What gets generated</h3>
+  <table>
+    <thead>
+      <tr><th>File</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>.claude/agents/&lt;name&gt;/&lt;name&gt;.md</code></td>
+        <td>Subagent definition (per team member)</td>
+      </tr>
+      <tr>
+        <td><code>.mcp.json</code></td>
+        <td>Agent OS MCP server config</td>
+      </tr>
+      <tr>
+        <td><code>.claude/settings.json</code></td>
+        <td>SubagentStop hooks for memory sync</td>
+      </tr>
+      <tr>
+        <td><code>CLAUDE-TEAM.md</code></td>
+        <td>Team overview, members, active project</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Generated subagent structure</h3>
+  <pre><code>---
+name: frontend-agent
+description: Expert frontend developer specializing in React and Next.js
+tools: Read, Write, Edit, Bash, Glob, Grep, mcp__agent-os__*
+model: sonnet
+maxTurns: 25
+---
+
+You are Frontend Agent.
+
+## Identity
+- Tone: technical but friendly
+- Vibe: Meticulous craftsperson who cares about UX details
+
+## Mission
+Build beautiful, performant frontend interfaces.
+
+### Key Tasks
+- Build React components with proper TypeScript types
+- Implement responsive layouts with Tailwind
+- Write unit tests with Vitest
+
+### Exclusions
+- Do NOT modify backend API routes
+
+## Memory Protocol
+You have persistent memory managed by Agent OS.
+
+At the start of each task:
+1. Call `agent-os__load_context` with agent_slug="frontend-agent-k2a..."
+2. Review your persona block and project decisions
+
+During work:
+- Significant decision? → `agent-os__core_memory_append` on "decisions"
+- User preference? → `agent-os__core_memory_replace` on "persona"
+
+At the end of your task:
+- Call `agent-os__sync_session` with a summary
+
+## Guardrails
+- Follow project coding conventions
+- Always write TypeScript, never plain JavaScript</code></pre>
+</section>
+
+<!-- Troubleshooting -->
+<section class="section" id="troubleshooting">
+  <h2>Troubleshooting</h2>
+
+  <div class="card">
+    <h3>"Agent has no Letta deployment"</h3>
+    <p>The agent hasn't been deployed to Letta yet. In Agent OS, go to the agent workspace and click "Deploy". Make sure <code>LETTA_BASE_URL</code> is set in <code>.env</code> and <code>docker compose up -d</code> is running.</p>
+  </div>
+
+  <div class="card">
+    <h3>"Letta not configured"</h3>
+    <p>The Agent OS server doesn't have Letta enabled. Set <code>LETTA_BASE_URL=http://localhost:8283</code> in your <code>.env</code> file and restart the dev server.</p>
+  </div>
+
+  <div class="card">
+    <h3>MCP server not connecting</h3>
+    <p>Check that Agent OS is running (<code>npm run dev</code>). Verify the URL: <code>npx agent-os-mcp --url http://localhost:3000</code>. Check Claude Code's MCP server logs.</p>
+  </div>
+
+  <div class="card">
+    <h3>Memory not syncing after session</h3>
+    <p>Verify the SubagentStop hook is in <code>.claude/settings.json</code>. Check that the agent has a <code>lettaAgentId</code> (visible in the API response). Test manually: <code>curl -X POST http://localhost:3000/api/agents/{id}/sync-session -d '{"summary":"test"}'</code></p>
+  </div>
+
+  <div class="card">
+    <h3>Agent doesn't load context on start</h3>
+    <p>The memory protocol in the subagent <code>.md</code> instructs the agent to call <code>load_context</code>. If the agent isn't doing this, check that <code>mcp__agent-os__*</code> is in the tools list in the YAML frontmatter.</p>
+  </div>
+</section>
+
+<!-- Runtime compat -->
+<section class="section">
+  <h2>Works with any MCP client</h2>
+  <p>The MCP server is runtime-agnostic. Agent OS owns identity and memory. The runtime owns execution.</p>
+
+  <table>
+    <thead>
+      <tr><th>Runtime</th><th>Integration</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Claude Code</td><td>MCP server + generated subagent definitions + hooks</td></tr>
+      <tr><td>Cursor</td><td>MCP server (manual agent prompt setup)</td></tr>
+      <tr><td>Windsurf</td><td>MCP server (manual agent prompt setup)</td></tr>
+      <tr><td>Custom (Agent SDK)</td><td>Programmatic via Claude Agent SDK + MCP</td></tr>
+      <tr><td>Any MCP client</td><td>Connect to <code>npx agent-os-mcp --url ...</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <p>Agent OS by Autonomous. MIT Licensed.</p>
+  </div>
+</footer>
+
+</body>
+</html>
